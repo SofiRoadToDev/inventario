@@ -1,0 +1,7 @@
+{
+  "name": "Sistema de Gestión de Inventario",
+  "description": "Una aplicación web completa para la gestión de inventario de activos escolares, que incluye registro de bienes, seguimiento por QR, historial de trazabilidad, gestión de catálogos, operaciones en lote y generación de reportes.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}

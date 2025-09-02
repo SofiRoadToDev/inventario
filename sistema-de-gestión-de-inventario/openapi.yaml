@@ -1,0 +1,778 @@
+openapi: 3.0.3
+info:
+  title: Sistema de Gestión de Inventario API
+  description: API RESTful para gestión de inventario construida con Node.js, Express y Sequelize
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@inventario.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:3000/api
+    description: Servidor de desarrollo
+  - url: https://inventario-api.com/api
+    description: Servidor de producción
+
+paths:
+  /health:
+    get:
+      summary: Verificar estado del servidor
+      description: Endpoint para verificar que el servidor esté funcionando correctamente
+      tags:
+        - Health
+      responses:
+        '200':
+          description: Servidor funcionando correctamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: OK
+                  timestamp:
+                    type: string
+                    format: date-time
+                    example: "2024-01-15T10:30:00.000Z"
+
+  /auth/login:
+    post:
+      summary: Iniciar sesión
+      description: Autenticar usuario con email y contraseña
+      tags:
+        - Autenticación
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: "usuario@ejemplo.com"
+                password:
+                  type: string
+                  format: password
+                  example: "password123"
+      responses:
+        '200':
+          description: Login exitoso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                  user:
+                    $ref: '#/components/schemas/UserResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /auth/register:
+    post:
+      summary: Registrar nuevo usuario
+      description: Crear una nueva cuenta de usuario
+      tags:
+        - Autenticación
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - email
+                - password
+              properties:
+                name:
+                  type: string
+                  example: "Juan Pérez"
+                email:
+                  type: string
+                  format: email
+                  example: "juan@ejemplo.com"
+                password:
+                  type: string
+                  format: password
+                  minLength: 6
+                  example: "password123"
+      responses:
+        '201':
+          description: Usuario creado exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "User created successfully"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /agents:
+    get:
+      summary: Listar todos los agentes
+      description: Obtener lista de todos los agentes registrados
+      tags:
+        - Agentes
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de agentes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Agent'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    post:
+      summary: Crear nuevo agente
+      description: Registrar un nuevo agente en el sistema
+      tags:
+        - Agentes
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgentInput'
+      responses:
+        '201':
+          description: Agente creado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Agent'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /agents/{id}:
+    get:
+      summary: Obtener agente por ID
+      description: Obtener información detallada de un agente específico
+      tags:
+        - Agentes
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID del agente
+          schema:
+            type: integer
+            example: 1
+      responses:
+        '200':
+          description: Información del agente
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Agent'
+                  - type: object
+                    properties:
+                      assets:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Asset'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    put:
+      summary: Actualizar agente
+      description: Actualizar información de un agente existente
+      tags:
+        - Agentes
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID del agente
+          schema:
+            type: integer
+            example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgentInput'
+      responses:
+        '200':
+          description: Agente actualizado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Agent'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    delete:
+      summary: Eliminar agente
+      description: Eliminar un agente del sistema (solo si no tiene activos asignados)
+      tags:
+        - Agentes
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID del agente
+          schema:
+            type: integer
+            example: 1
+      responses:
+        '200':
+          description: Agente eliminado exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Agent deleted successfully"
+        '400':
+          description: No se puede eliminar agente con activos asignados
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /assets:
+    get:
+      summary: Listar todos los activos
+      description: Obtener lista de activos con filtros opcionales
+      tags:
+        - Activos
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          description: Filtrar por estado del activo
+          schema:
+            type: string
+            enum: [active, in_repair, decommissioned]
+            example: active
+        - name: agentId
+          in: query
+          description: Filtrar por ID del agente asignado
+          schema:
+            type: integer
+            example: 1
+      responses:
+        '200':
+          description: Lista de activos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  allOf:
+                    - $ref: '#/components/schemas/Asset'
+                    - type: object
+                      properties:
+                        agent:
+                          $ref: '#/components/schemas/AgentBasic'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    post:
+      summary: Crear nuevo activo
+      description: Registrar un nuevo activo en el inventario
+      tags:
+        - Activos
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssetInput'
+      responses:
+        '201':
+          description: Activo creado exitosamente
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Asset'
+                  - type: object
+                    properties:
+                      agent:
+                        $ref: '#/components/schemas/AgentBasic'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Agente no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /assets/{id}:
+    get:
+      summary: Obtener activo por ID
+      description: Obtener información detallada de un activo específico
+      tags:
+        - Activos
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID del activo
+          schema:
+            type: integer
+            example: 1
+      responses:
+        '200':
+          description: Información del activo
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Asset'
+                  - type: object
+                    properties:
+                      agent:
+                        $ref: '#/components/schemas/AgentBasic'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    put:
+      summary: Actualizar activo
+      description: Actualizar información de un activo existente
+      tags:
+        - Activos
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID del activo
+          schema:
+            type: integer
+            example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssetInput'
+      responses:
+        '200':
+          description: Activo actualizado exitosamente
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Asset'
+                  - type: object
+                    properties:
+                      agent:
+                        $ref: '#/components/schemas/AgentBasic'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    delete:
+      summary: Eliminar activo
+      description: Eliminar un activo del inventario
+      tags:
+        - Activos
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID del activo
+          schema:
+            type: integer
+            example: 1
+      responses:
+        '200':
+          description: Activo eliminado exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Asset deleted successfully"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /reports/assets-by-agent:
+    get:
+      summary: Reporte de activos por agente
+      description: Obtener un reporte que muestra todos los agentes con sus activos asignados
+      tags:
+        - Reportes
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Reporte de activos por agente
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                      example: 1
+                    name:
+                      type: string
+                      example: "Juan Pérez"
+                    department:
+                      type: string
+                      example: "IT"
+                    assets:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          id:
+                            type: integer
+                            example: 101
+                          name:
+                            type: string
+                            example: "Laptop Dell XPS"
+                          serialNumber:
+                            type: string
+                            example: "DL001"
+                          status:
+                            type: string
+                            enum: [active, in_repair, decommissioned]
+                            example: "active"
+                          value:
+                            type: number
+                            format: decimal
+                            example: 1200.50
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /upload:
+    post:
+      summary: Subir archivo
+      description: Subir un archivo de imagen para asociar con un activo
+      tags:
+        - Archivos
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Archivo de imagen (JPG, PNG, GIF máximo 5MB)
+      responses:
+        '200':
+          description: Archivo subido exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  filePath:
+                    type: string
+                    example: "/files/file-1642089600000-123456789.jpg"
+        '400':
+          description: Error en la subida del archivo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Token JWT obtenido del endpoint de login
+
+  schemas:
+    UserResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: "Juan Pérez"
+        email:
+          type: string
+          format: email
+          example: "juan@ejemplo.com"
+
+    Agent:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: "Juan Pérez"
+        department:
+          type: string
+          example: "IT"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00.000Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00.000Z"
+
+    AgentInput:
+      type: object
+      required:
+        - name
+        - department
+      properties:
+        name:
+          type: string
+          example: "Juan Pérez"
+        department:
+          type: string
+          example: "IT"
+
+    AgentBasic:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: "Juan Pérez"
+        department:
+          type: string
+          example: "IT"
+
+    Asset:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: "Laptop Dell XPS"
+        description:
+          type: string
+          nullable: true
+          example: "Laptop para desarrollo"
+        serialNumber:
+          type: string
+          example: "DL001"
+        value:
+          type: number
+          format: decimal
+          example: 1200.50
+        purchaseDate:
+          type: string
+          format: date
+          example: "2024-01-15"
+        status:
+          type: string
+          enum: [active, in_repair, decommissioned]
+          example: "active"
+        imageUrl:
+          type: string
+          nullable: true
+          example: "/files/laptop-image.jpg"
+        agentId:
+          type: integer
+          example: 1
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00.000Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00.000Z"
+
+    AssetInput:
+      type: object
+      required:
+        - name
+        - serialNumber
+        - value
+        - purchaseDate
+        - status
+        - agentId
+      properties:
+        name:
+          type: string
+          example: "Laptop Dell XPS"
+        description:
+          type: string
+          example: "Laptop para desarrollo"
+        serialNumber:
+          type: string
+          example: "DL001"
+        value:
+          type: number
+          format: decimal
+          minimum: 0
+          example: 1200.50
+        purchaseDate:
+          type: string
+          format: date
+          example: "2024-01-15"
+        status:
+          type: string
+          enum: [active, in_repair, decommissioned]
+          example: "active"
+        imageUrl:
+          type: string
+          example: "/files/laptop-image.jpg"
+        agentId:
+          type: integer
+          example: 1
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          example: "Error message"
+
+  responses:
+    BadRequest:
+      description: Solicitud inválida
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    Unauthorized:
+      description: No autorizado - Token requerido o inválido
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    NotFound:
+      description: Recurso no encontrado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    InternalError:
+      description: Error interno del servidor
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+tags:
+  - name: Health
+    description: Endpoints de salud del servidor
+  - name: Autenticación
+    description: Operaciones de autenticación y registro
+  - name: Agentes
+    description: Gestión de agentes/responsables
+  - name: Activos
+    description: Gestión de activos del inventario
+  - name: Reportes
+    description: Generación de reportes
+  - name: Archivos
+    description: Gestión de archivos e imágenes

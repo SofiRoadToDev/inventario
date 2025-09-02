@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sistema de Gestión de Inventario</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {}
+      }
+    }
+  </script>
+  <style>
+    /* Custom scrollbar for better aesthetics */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f1f1;
+    }
+    html.dark ::-webkit-scrollbar-track {
+      background: #1a202c;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #888;
+      border-radius: 4px;
+    }
+    html.dark ::-webkit-scrollbar-thumb {
+      background: #4a5568;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #555;
+    }
+    html.dark ::-webkit-scrollbar-thumb:hover {
+        background: #718096;
+    }
+  </style>
+<script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@^19.1.0",
+    "react/": "https://esm.sh/react@^19.1.0/",
+    "recharts": "https://esm.sh/recharts@^3.0.2",
+    "react-dom/": "https://esm.sh/react-dom@^19.1.0/",
+    "qrcode.react": "https://esm.sh/qrcode.react@^4.2.0"
+  }
+}
+</script>
+
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 antialiased">
+  <div id="root"></div>
+<script type="module" src="/index.tsx"></script>
+</body>
+</html>

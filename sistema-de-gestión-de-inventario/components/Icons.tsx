@@ -1,0 +1,29 @@
+import React from 'react';
+
+const IconWrapper: React.FC<{ children: React.ReactNode, className?: string }> = ({ children, className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+        {children}
+    </svg>
+);
+
+export const DashboardIcon: React.FC<{className?: string}> = ({className}) => <IconWrapper className={className}><rect width="7" height="9" x="3" y="3" rx="1"></rect><rect width="7" height="5" x="14" y="3" rx="1"></rect><rect width="7" height="9" x="14" y="12" rx="1"></rect><rect width="7" height="5" x="3" y="16" rx="1"></rect></IconWrapper>;
+export const AssetsIcon: React.FC<{className?: string}> = ({className}) => <IconWrapper className={className}><path d="M14 9a2 2 0 0 1-2 2H6l-4 4V4c0-1.1.9-2 2-2h8a2 2 0 0 1 2 2v5Z"></path><path d="M18 9h2a2 2 0 0 1 2 2v10l-4-4Z"></path></IconWrapper>;
+export const MobileIcon: React.FC<{className?: string}> = ({className}) => <IconWrapper className={className}><rect width="14" height="20" x="5" y="2" rx="2" ry="2"></rect><path d="M12 18h.01"></path></IconWrapper>;
+export const ReportsIcon: React.FC<{className?: string}> = ({className}) => <IconWrapper className={className}><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path><path d="M14 2v4a2 2 0 0 0 2 2h4"></path><path d="M10 9H8"></path><path d="M16 13H8"></path><path d="M16 17H8"></path></IconWrapper>;
+export const CatalogIcon: React.FC<{className?: string}> = ({className}) => <IconWrapper className={className}><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"></path></IconWrapper>;
+export const PlusIcon: React.FC<{className?: string}> = ({className}) => <IconWrapper className={className}><path d="M5 12h14"></path><path d="M12 5v14"></path></IconWrapper>;
+export const EditIcon: React.FC<{className?: string}> = ({className}) => <IconWrapper className={className}><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path></IconWrapper>;
+export const TrashIcon: React.FC<{className?: string}> = ({className}) => <IconWrapper className={className}><path d="M3 6h18"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></IconWrapper>;
+export const QRIcon: React.FC<{className?: string}> = ({className}) => <IconWrapper className={className}><rect width="5" height="5" x="3" y="3" rx="1"></rect><rect width="5" height="5" x="16" y="3" rx="1"></rect><rect width="5" height="5" x="3" y="16" rx="1"></rect><path d="M21 16h-3a2 2 0 0 0-2 2v3"></path><path d="M16 21v-3a2 2 0 0 0-2-2h-3"></path><path d="M3 8h3a2 2 0 0 0 2-2V3"></path><path d="M8 3v3a2 2 0 0 0 2 2h3"></path></IconWrapper>;
+export const ViewIcon: React.FC<{className?: string}> = ({className}) => <IconWrapper className={className}><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path><circle cx="12" cy="12" r="3"></circle></IconWrapper>;
+export const SearchIcon: React.FC<{className?: string}> = ({className}) => <IconWrapper className={className}><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></IconWrapper>;
+export const DownloadIcon: React.FC<{className?: string}> = ({className}) => <IconWrapper className={className}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" x2="12" y1="15" y2="3"></line></IconWrapper>;
+export const XIcon: React.FC<{className?: string}> = ({className}) => <IconWrapper className={className}><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></IconWrapper>;
+export const SunIcon: React.FC<{className?: string}> = ({className}) => <IconWrapper className={className}><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path></IconWrapper>;
+export const MoonIcon: React.FC<{className?: string}> = ({className}) => <IconWrapper className={className}><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></IconWrapper>;
+export const CameraIcon: React.FC<{className?: string}> = ({className}) => <IconWrapper className={className}><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"></path><circle cx="12" cy="13" r="3"></circle></IconWrapper>;
+export const UploadIcon: React.FC<{className?: string}> = ({className}) => <IconWrapper className={className}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" x2="12" y1="3" y2="15"></line></IconWrapper>;
+export const UsersIcon: React.FC<{className?: string}> = ({className}) => <IconWrapper className={className}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></IconWrapper>;
+export const ReportIcon: React.FC<{className?: string}> = ({className}) => <IconWrapper className={className}><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></IconWrapper>;
+export const MenuIcon: React.FC<{className?: string}> = ({className}) => <IconWrapper className={className}><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="18" y2="18"></line></IconWrapper>;
+export const LogoutIcon: React.FC<{className?: string}> = ({className}) => <IconWrapper className={className}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="17 16 22 12 17 8"></polyline><line x1="22" x2="10" y1="12" y2="12"></line></IconWrapper>;

@@ -1054,6 +1054,10 @@ components:
           type: string
           nullable: true
           example: "Ubicación en la sede central"
+        address:
+          type: string
+          nullable: true
+          example: "123 Main St"
         createdAt:
           type: string
           format: date-time
@@ -1071,6 +1075,9 @@ components:
         description:
           type: string
           example: "Ubicación en la sede central"
+        address:
+          type: string
+          example: "123 Main St"
 
     # Schemas de Categoría
     Category:
@@ -1111,6 +1118,9 @@ components:
         id:
           type: integer
           example: 1
+        name:
+          type: string
+          example: "Laptop"
         code:
           type: string
           example: "EQ-INF"
@@ -1118,6 +1128,9 @@ components:
           type: string
           nullable: true
           example: "Código para equipos informáticos"
+        type:
+          type: string
+          example: "Hardware"
         createdAt:
           type: string
           format: date-time
@@ -1127,14 +1140,37 @@ components:
     NomenclatureInput:
       type: object
       required:
+        - name
         - code
+        - type
       properties:
+        name:
+          type: string
+          example: "Laptop"
         code:
           type: string
           example: "EQ-INF"
         description:
           type: string
           example: "Código para equipos informáticos"
+        type:
+          type: string
+          example: "Hardware"
+    NomenclatureUpdateInput:
+      type: object
+      properties:
+        name:
+          type: string
+          example: "Laptop Actualizada"
+        code:
+          type: string
+          example: "LT-UPD"
+        description:
+          type: string
+          example: "Descripción actualizada"
+        type:
+          type: string
+          example: "Software"
 
     # Schemas Genéricos
     Error:

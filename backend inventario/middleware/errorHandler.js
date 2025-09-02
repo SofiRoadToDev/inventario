@@ -1,24 +1,20 @@
+const { ApiError } = require('../utils/customErrors');
+
 const errorHandler = (err, req, res, next) => {
-  console.error(err.stack);
-
-  if (err.name === 'SequelizeValidationError') {
-    const errors = err.errors.map(e => e.message);
-    return res.status(400).json({ error: errors.join(', ') });
+  // Si el error es una instancia de nuestra clase ApiError, usamos su statusCode y mensaje
+  if (err instanceof ApiError) {
+    return res.status(err.statusCode).json({
+      error: err.message,
+    });
   }
 
-  if (err.name === 'SequelizeUniqueConstraintError') {
-    return res.status(400).json({ error: 'Duplicate value for unique field' });
-  }
+  // Para cualquier otro tipo de error, devolvemos un 500 Internal Server Error
+  // Es importante loggear el error para depuración en un entorno real
+  console.error(err);
 
-  if (err.name === 'SequelizeForeignKeyConstraintError') {
-    return res.status(400).json({ error: 'Invalid foreign key reference' });
-  }
-
-  if (err.name === 'ValidationError') {
-    return res.status(400).json({ error: err.message });
-  }
-
-  res.status(500).json({ error: 'Internal server error' });
+  return res.status(500).json({
+    error: 'Ocurrió un error inesperado en el servidor.',
+  });
 };
 
 module.exports = errorHandler;

@@ -1,92 +1,55 @@
-const Joi = require('joi');
 const { Category, Asset } = require('../models');
+const asyncHandler = require('../utils/asyncHandler');
+const { NotFoundError, BadRequestError } = require('../utils/customErrors');
 
-const categorySchema = Joi.object({
-  name: Joi.string().required(),
-  description: Joi.string().optional()
+exports.getAllCategories = asyncHandler(async (req, res) => {
+  const categories = await Category.findAll();
+  res.json(categories);
 });
 
-exports.getAllCategories = async (req, res) => {
-  try {
-    const categories = await Category.findAll();
-    res.json(categories);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+exports.getCategoryById = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const category = await Category.findByPk(id, {
+    include: [{ model: Asset, as: 'assets' }],
+  });
+
+  if (!category) {
+    throw new NotFoundError('Categoría no encontrada');
   }
-};
 
-exports.getCategoryById = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const category = await Category.findByPk(id, {
-      include: [{
-        model: Asset,
-        as: 'assets'
-      }]
-    });
+  res.json(category);
+});
 
-    if (!category) {
-      return res.status(404).json({ error: 'Category not found' });
-    }
+exports.createCategory = asyncHandler(async (req, res) => {
+  const category = await Category.create(req.body);
+  res.status(201).json(category);
+});
 
-    res.json(category);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+exports.updateCategory = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const category = await Category.findByPk(id);
+
+  if (!category) {
+    throw new NotFoundError('Categoría no encontrada');
   }
-};
 
-exports.createCategory = async (req, res) => {
-  try {
-    const { error, value } = categorySchema.validate(req.body);
-    if (error) {
-      return res.status(400).json({ error: error.details[0].message });
-    }
+  await category.update(req.body);
+  res.json(category);
+});
 
-    const category = await Category.create(value);
-    res.status(201).json(category);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+exports.deleteCategory = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const category = await Category.findByPk(id);
+
+  if (!category) {
+    throw new NotFoundError('Categoría no encontrada');
   }
-};
 
-exports.updateCategory = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { error, value } = categorySchema.validate(req.body);
-    if (error) {
-      return res.status(400).json({ error: error.details[0].message });
-    }
-
-    const category = await Category.findByPk(id);
-    if (!category) {
-      return res.status(404).json({ error: 'Category not found' });
-    }
-
-    await category.update(value);
-    res.json(category);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+  const assetsCount = await Asset.count({ where: { categoryId: id } });
+  if (assetsCount > 0) {
+    throw new BadRequestError('No se puede eliminar una categoría con activos asignados');
   }
-};
 
-exports.deleteCategory = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const category = await Category.findByPk(id);
-    
-    if (!category) {
-      return res.status(404).json({ error: 'Category not found' });
-    }
-    
-    // Verificar si hay activos asociados a esta categoría
-    const assetsCount = await Asset.count({ where: { categoryId: id } });
-    if (assetsCount > 0) {
-      return res.status(400).json({ error: 'Cannot delete category with assigned assets' });
-    }
-
-    await category.destroy();
-    res.json({ message: 'Category deleted successfully' });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
+  await category.destroy();
+  res.status(200).json({ message: 'Categoría eliminada exitosamente' });
+});

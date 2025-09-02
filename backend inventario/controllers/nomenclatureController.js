@@ -1,93 +1,55 @@
-const Joi = require('joi');
 const { Nomenclature, Asset } = require('../models');
+const asyncHandler = require('../utils/asyncHandler');
+const { NotFoundError, BadRequestError } = require('../utils/customErrors');
 
-const nomenclatureSchema = Joi.object({
-  code: Joi.string().required(),
-  description: Joi.string().optional(),
-  type: Joi.string().required()
+exports.getAllNomenclatures = asyncHandler(async (req, res) => {
+  const nomenclatures = await Nomenclature.findAll();
+  res.json(nomenclatures);
 });
 
-exports.getAllNomenclatures = async (req, res) => {
-  try {
-    const nomenclatures = await Nomenclature.findAll();
-    res.json(nomenclatures);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+exports.getNomenclatureById = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const nomenclature = await Nomenclature.findByPk(id, {
+    include: [{ model: Asset, as: 'assets' }],
+  });
+
+  if (!nomenclature) {
+    throw new NotFoundError('Nomenclatura no encontrada');
   }
-};
 
-exports.getNomenclatureById = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const nomenclature = await Nomenclature.findByPk(id, {
-      include: [{
-        model: Asset,
-        as: 'assets'
-      }]
-    });
+  res.json(nomenclature);
+});
 
-    if (!nomenclature) {
-      return res.status(404).json({ error: 'Nomenclature not found' });
-    }
+exports.createNomenclature = asyncHandler(async (req, res) => {
+  const nomenclature = await Nomenclature.create(req.body);
+  res.status(201).json(nomenclature);
+});
 
-    res.json(nomenclature);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+exports.updateNomenclature = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const nomenclature = await Nomenclature.findByPk(id);
+
+  if (!nomenclature) {
+    throw new NotFoundError('Nomenclatura no encontrada');
   }
-};
 
-exports.createNomenclature = async (req, res) => {
-  try {
-    const { error, value } = nomenclatureSchema.validate(req.body);
-    if (error) {
-      return res.status(400).json({ error: error.details[0].message });
-    }
+  await nomenclature.update(req.body);
+  res.json(nomenclature);
+});
 
-    const nomenclature = await Nomenclature.create(value);
-    res.status(201).json(nomenclature);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+exports.deleteNomenclature = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const nomenclature = await Nomenclature.findByPk(id);
+
+  if (!nomenclature) {
+    throw new NotFoundError('Nomenclatura no encontrada');
   }
-};
 
-exports.updateNomenclature = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { error, value } = nomenclatureSchema.validate(req.body);
-    if (error) {
-      return res.status(400).json({ error: error.details[0].message });
-    }
-
-    const nomenclature = await Nomenclature.findByPk(id);
-    if (!nomenclature) {
-      return res.status(404).json({ error: 'Nomenclature not found' });
-    }
-
-    await nomenclature.update(value);
-    res.json(nomenclature);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+  const assetsCount = await Asset.count({ where: { nomenclatureId: id } });
+  if (assetsCount > 0) {
+    throw new BadRequestError('No se puede eliminar una nomenclatura con activos asignados');
   }
-};
 
-exports.deleteNomenclature = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const nomenclature = await Nomenclature.findByPk(id);
-    
-    if (!nomenclature) {
-      return res.status(404).json({ error: 'Nomenclature not found' });
-    }
-    
-    // Verificar si hay activos asociados a esta nomenclatura
-    const assetsCount = await Asset.count({ where: { nomenclatureId: id } });
-    if (assetsCount > 0) {
-      return res.status(400).json({ error: 'Cannot delete nomenclature with assigned assets' });
-    }
-
-    await nomenclature.destroy();
-    res.json({ message: 'Nomenclature deleted successfully' });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
+  await nomenclature.destroy();
+  res.status(200).json({ message: 'Nomenclatura eliminada exitosamente' });
+});

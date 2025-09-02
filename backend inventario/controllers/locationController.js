@@ -1,93 +1,55 @@
-const Joi = require('joi');
 const { Location, Asset } = require('../models');
+const asyncHandler = require('../utils/asyncHandler');
+const { NotFoundError, BadRequestError } = require('../utils/customErrors');
 
-const locationSchema = Joi.object({
-  name: Joi.string().required(),
-  description: Joi.string().optional(),
-  address: Joi.string().optional()
+exports.getAllLocations = asyncHandler(async (req, res) => {
+  const locations = await Location.findAll();
+  res.json(locations);
 });
 
-exports.getAllLocations = async (req, res) => {
-  try {
-    const locations = await Location.findAll();
-    res.json(locations);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+exports.getLocationById = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const location = await Location.findByPk(id, {
+    include: [{ model: Asset, as: 'assets' }],
+  });
+
+  if (!location) {
+    throw new NotFoundError('Ubicación no encontrada');
   }
-};
 
-exports.getLocationById = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const location = await Location.findByPk(id, {
-      include: [{
-        model: Asset,
-        as: 'assets'
-      }]
-    });
+  res.json(location);
+});
 
-    if (!location) {
-      return res.status(404).json({ error: 'Location not found' });
-    }
+exports.createLocation = asyncHandler(async (req, res) => {
+  const location = await Location.create(req.body);
+  res.status(201).json(location);
+});
 
-    res.json(location);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+exports.updateLocation = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const location = await Location.findByPk(id);
+
+  if (!location) {
+    throw new NotFoundError('Ubicación no encontrada');
   }
-};
 
-exports.createLocation = async (req, res) => {
-  try {
-    const { error, value } = locationSchema.validate(req.body);
-    if (error) {
-      return res.status(400).json({ error: error.details[0].message });
-    }
+  await location.update(req.body);
+  res.json(location);
+});
 
-    const location = await Location.create(value);
-    res.status(201).json(location);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+exports.deleteLocation = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const location = await Location.findByPk(id);
+
+  if (!location) {
+    throw new NotFoundError('Ubicación no encontrada');
   }
-};
 
-exports.updateLocation = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { error, value } = locationSchema.validate(req.body);
-    if (error) {
-      return res.status(400).json({ error: error.details[0].message });
-    }
-
-    const location = await Location.findByPk(id);
-    if (!location) {
-      return res.status(404).json({ error: 'Location not found' });
-    }
-
-    await location.update(value);
-    res.json(location);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+  const assetsCount = await Asset.count({ where: { locationId: id } });
+  if (assetsCount > 0) {
+    throw new BadRequestError('No se puede eliminar una ubicación con activos asignados');
   }
-};
 
-exports.deleteLocation = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const location = await Location.findByPk(id);
-    
-    if (!location) {
-      return res.status(404).json({ error: 'Location not found' });
-    }
-    
-    // Verificar si hay activos asociados a esta ubicación
-    const assetsCount = await Asset.count({ where: { locationId: id } });
-    if (assetsCount > 0) {
-      return res.status(400).json({ error: 'Cannot delete location with assigned assets' });
-    }
-
-    await location.destroy();
-    res.json({ message: 'Location deleted successfully' });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
+  await location.destroy();
+  res.status(200).json({ message: 'Ubicación eliminada exitosamente' });
+});

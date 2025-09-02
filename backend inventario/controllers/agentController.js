@@ -1,91 +1,55 @@
-const Joi = require('joi');
 const { Agent, Asset } = require('../models');
+const asyncHandler = require('../utils/asyncHandler');
+const { NotFoundError, BadRequestError } = require('../utils/customErrors');
 
-const agentSchema = Joi.object({
-  name: Joi.string().required(),
-  department: Joi.string().required()
+exports.getAllAgents = asyncHandler(async (req, res) => {
+  const agents = await Agent.findAll();
+  res.json(agents);
 });
 
-exports.getAllAgents = async (req, res) => {
-  try {
-    const agents = await Agent.findAll();
-    res.json(agents);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+exports.getAgentById = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const agent = await Agent.findByPk(id, {
+    include: [{ model: Asset, as: 'assets' }],
+  });
+
+  if (!agent) {
+    throw new NotFoundError('Agente no encontrado');
   }
-};
 
-exports.getAgentById = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const agent = await Agent.findByPk(id, {
-      include: [{
-        model: Asset,
-        as: 'assets'
-      }]
-    });
+  res.json(agent);
+});
 
-    if (!agent) {
-      return res.status(404).json({ error: 'Agent not found' });
-    }
+exports.createAgent = asyncHandler(async (req, res) => {
+  const agent = await Agent.create(req.body);
+  res.status(201).json(agent);
+});
 
-    res.json(agent);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+exports.updateAgent = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  const agent = await Agent.findByPk(id);
+  if (!agent) {
+    throw new NotFoundError('Agente no encontrado');
   }
-};
 
-exports.createAgent = async (req, res) => {
-  try {
-    const { error } = agentSchema.validate(req.body);
-    if (error) {
-      return res.status(400).json({ error: error.details[0].message });
-    }
+  await agent.update(req.body);
+  res.json(agent);
+});
 
-    const agent = await Agent.create(req.body);
-    res.status(201).json(agent);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+exports.deleteAgent = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const agent = await Agent.findByPk(id);
+
+  if (!agent) {
+    throw new NotFoundError('Agente no encontrado');
   }
-};
 
-exports.updateAgent = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { error } = agentSchema.validate(req.body);
-    if (error) {
-      return res.status(400).json({ error: error.details[0].message });
-    }
-
-    const agent = await Agent.findByPk(id);
-    if (!agent) {
-      return res.status(404).json({ error: 'Agent not found' });
-    }
-
-    await agent.update(req.body);
-    res.json(agent);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+  const assetsCount = await Asset.count({ where: { agentId: id } });
+  if (assetsCount > 0) {
+    throw new BadRequestError('No se puede eliminar un agente con activos asignados');
   }
-};
 
-exports.deleteAgent = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const agent = await Agent.findByPk(id);
-    
-    if (!agent) {
-      return res.status(404).json({ error: 'Agent not found' });
-    }
-
-    const assetsCount = await Asset.count({ where: { agentId: id } });
-    if (assetsCount > 0) {
-      return res.status(400).json({ error: 'Cannot delete agent with assigned assets' });
-    }
-
-    await agent.destroy();
-    res.json({ message: 'Agent deleted successfully' });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
+  await agent.destroy();
+  res.status(200).json({ message: 'Agente eliminado exitosamente' });
+});

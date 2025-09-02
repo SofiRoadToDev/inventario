@@ -62,7 +62,7 @@ const startServer = async () => {
     await sequelize.sync({ force: false });
     console.log('Database synchronized.');
     
-    app.listen(PORT, () => {
+    return app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
     });
   } catch (error) {
@@ -71,4 +71,10 @@ const startServer = async () => {
   }
 };
 
-startServer();
+// Iniciar el servidor solo si el script es ejecutado directamente
+if (require.main === module) {
+  startServer();
+}
+
+// Exportar la app para las pruebas
+module.exports = app;

@@ -8,7 +8,8 @@
     "dev": "nodemon server.js",
     "db:create": "sequelize-cli db:create",
     "db:migrate": "sequelize-cli db:migrate",
-    "db:seed": "sequelize-cli db:seed:all"
+    "db:seed": "sequelize-cli db:seed:all",
+    "test": "cross-env NODE_ENV=test jest --testTimeout=10000 --detectOpenHandles"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
@@ -26,8 +27,11 @@
     "sqlite3": "^5.1.7"
   },
   "devDependencies": {
+    "cross-env": "^10.0.0",
+    "jest": "^30.1.3",
     "nodemon": "^3.0.2",
-    "sequelize-cli": "^6.6.2"
+    "sequelize-cli": "^6.6.2",
+    "supertest": "^7.1.4"
   },
   "keywords": [
     "inventory",

@@ -211,6 +211,9 @@ const AppContent: React.FC = () => {
             <NavItem icon={<ReportIcon className="h-6 w-6" />} label="Bienes por Agente" isActive={currentPage === 'assets_by_agent_report'} onClick={() => setCurrentPage('assets_by_agent_report')} />
           </ul>
         </nav>
+        <div className="p-4 flex justify-center">
+          <img src="/logo.png" alt="Logo" className="w-32 h-auto" />
+        </div>
         <div className="p-4 border-t dark:border-gray-700">
            <button 
               onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}

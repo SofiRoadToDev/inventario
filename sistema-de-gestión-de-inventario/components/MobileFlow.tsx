@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Asset, Location, AssetStatus } from '../types';
 import { Button, Card, Input, Select, Spinner, Textarea } from './ui';
 import {moc} from '../services/mockApi';
@@ -16,6 +16,8 @@ const MobileFlow: React.FC<MobileFlowProps> = ({ locations, onUpdateAsset }) => 
   const [scannedAsset, setScannedAsset] = useState<Asset | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isCameraActive, setIsCameraActive] = useState(false);
+  const qrScannerRef = useRef<any>(null);
   const [formData, setFormData] = useState({
     status: AssetStatus.BUENO,
     value: 0,
@@ -38,6 +40,8 @@ const MobileFlow: React.FC<MobileFlowProps> = ({ locations, onUpdateAsset }) => 
                 observations: ''
             });
             setView('form');
+            // Desactivar la cámara cuando se encuentra un código QR válido
+            stopCamera();
         } else {
             setError(`Bien con ID "${decodedText}" no encontrado.`);
         }
@@ -48,47 +52,56 @@ const MobileFlow: React.FC<MobileFlowProps> = ({ locations, onUpdateAsset }) => 
     }
   }, []);
 
-  useEffect(() => {
-    if (view === 'scanner') {
-        const qrScanner = new Html5Qrcode("qr-reader");
-
-        const startScanner = () => {
-             qrScanner.start(
-                { facingMode: "environment" },
-                { fps: 10, qrbox: { width: 250, height: 250 } },
-                (decodedText: string) => {
-                    // prevent multiple callbacks if scanning is fast
-                    if (qrScanner.isScanning) {
-                        handleScanSuccess(decodedText);
-                    }
-                },
-                (errorMessage: string) => { /* ignore errors */ }
-            ).catch((err: any) => {
-                setError("No se pudo iniciar la cámara. Verifique los permisos.");
-                console.error("Unable to start scanning.", err);
-            });
-        }
-        
-        Html5Qrcode.getCameras().then((devices: any[]) => {
-            if (devices && devices.length) {
-                startScanner();
-            } else {
-                setError("No se encontraron cámaras en este dispositivo.");
-            }
-        }).catch(err => {
-            setError("Error al acceder a las cámaras.");
-        });
-
-        return () => {
-             // The html5-qrcode library throws an error if 'stop()' is called when not scanning.
-             // We can use the 'isScanning' property to prevent this.
-             if (qrScanner && qrScanner.isScanning) {
-                qrScanner.stop().catch(err => {
-                    console.warn("QR scanner stop failed.", err);
-                });
-             }
-        };
+  const startCamera = () => {
+    setError('');
+    if (!qrScannerRef.current) {
+      qrScannerRef.current = new Html5Qrcode("qr-reader");
     }
+
+    qrScannerRef.current.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: { width: 250, height: 250 } },
+      (decodedText: string) => {
+        // prevent multiple callbacks if scanning is fast
+        if (qrScannerRef.current && qrScannerRef.current.isScanning) {
+          handleScanSuccess(decodedText);
+        }
+      },
+      (errorMessage: string) => { /* ignore errors */ }
+    ).then(() => {
+      setIsCameraActive(true);
+    }).catch((err: any) => {
+      setError("No se pudo iniciar la cámara. Verifique los permisos.");
+      console.error("Unable to start scanning.", err);
+    });
+  };
+
+  const stopCamera = () => {
+    if (qrScannerRef.current && qrScannerRef.current.isScanning) {
+      qrScannerRef.current.stop().then(() => {
+        setIsCameraActive(false);
+      }).catch((err: any) => {
+        console.warn("QR scanner stop failed.", err);
+      });
+    }
+  };
+
+  useEffect(() => {
+    // Inicializar el scanner pero no activar la cámara automáticamente
+    if (view === 'scanner') {
+      Html5Qrcode.getCameras().then((devices: any[]) => {
+        if (!devices || devices.length === 0) {
+          setError("No se encontraron cámaras en este dispositivo.");
+        }
+      }).catch(err => {
+        setError("Error al acceder a las cámaras.");
+      });
+    }
+
+    // Limpiar al desmontar
+    return () => {
+      stopCamera();
+    };
   }, [view, handleScanSuccess]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -126,8 +139,40 @@ const MobileFlow: React.FC<MobileFlowProps> = ({ locations, onUpdateAsset }) => 
             <div id="qr-reader" className="w-full rounded-lg overflow-hidden border-2 border-dashed border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700"></div>
             {loading && <div className="mt-4"><Spinner /></div>}
             {error && <p className="text-red-500 dark:text-red-400 mt-4">{error}</p>}
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-4">Apunte la cámara al código QR pegado en el bien.</p>
-            <Button variant="secondary" className="mt-4" onClick={() => handleScanSuccess('ASSET-002')}>Simular Escaneo (Bien Regular)</Button>
+            
+            <div className="mt-4 flex flex-col space-y-2">
+              {isCameraActive ? (
+                <Button 
+                  variant="danger" 
+                  className="w-full" 
+                  onClick={stopCamera}
+                >
+                  Desactivar Cámara
+                </Button>
+              ) : (
+                <Button 
+                  variant="primary" 
+                  className="w-full" 
+                  onClick={startCamera}
+                >
+                  Activar Cámara
+                </Button>
+              )}
+              
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                {isCameraActive 
+                  ? "Apunte la cámara al código QR pegado en el bien." 
+                  : "Activa la cámara para escanear un código QR."}
+              </p>
+              
+              <Button 
+                variant="secondary" 
+                className="mt-2" 
+                onClick={() => handleScanSuccess('ASSET-002')}
+              >
+                Simular Escaneo (Bien Regular)
+              </Button>
+            </div>
         </Card>
       </div>
     );

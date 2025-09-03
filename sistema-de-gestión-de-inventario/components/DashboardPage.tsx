@@ -48,7 +48,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ assets, locations, loadin
 
   return (
     <div className="p-4 md:p-8 space-y-8">
-      <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100">Dashboard de Control</h1>
+      <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100">Dashboard de Control- Inventario EET 3107 " Juana Azurduy de Padilla"</h1>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>

@@ -1,15 +1,19 @@
 
 import { Agent, Asset, AssetStatus } from "../types";
 import { IInventoryRepository } from "./IInventoryRepository";
-import axios from "axios";
+import axios, { AxiosError } from "axios";
+
+const API_URL = "http://localhost:3000/api";
 
 const apiClient = axios.create({
-  baseURL:  "http://localhost:3000/api",
+  baseURL: API_URL,
   headers: {
     "Content-Type": "application/json",
   },
+  timeout: 10000, // 10 segundos de timeout
 });
 
+// Interceptor para agregar el token de autenticación
 apiClient.interceptors.request.use(config => {
   const token = localStorage.getItem('token');
   if (token) {
@@ -18,72 +22,162 @@ apiClient.interceptors.request.use(config => {
   return config;
 });
 
+// Interceptor para manejar errores
+apiClient.interceptors.response.use(
+  response => response,
+  (error: AxiosError) => {
+    if (error.response) {
+      // Error de respuesta del servidor (400-500)
+      console.error('Error de API:', error.response.status, error.response.data);
+      
+      // Si es error 401 (no autorizado), redirigir al login
+      if (error.response.status === 401) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.location.href = '/login';
+      }
+    } else if (error.request) {
+      // Error de red (no se recibió respuesta)
+      console.error('Error de red:', error.request);
+    } else {
+      // Error en la configuración de la solicitud
+      console.error('Error:', error.message);
+    }
+    return Promise.reject(error);
+  }
+);
+
 export class NodeApiRepository implements IInventoryRepository {
   async getAgents(): Promise<Agent[]> {
-    const response = await apiClient.get("/agents");
-    return response.data.map(this.mapApiAgentToAgent);
+    try {
+      const response = await apiClient.get("/agents");
+      return response.data.map((agent: any) => this.mapApiAgentToAgent(agent));
+    } catch (error) {
+      console.error("Error al obtener agentes:", error);
+      throw error;
+    }
   }
 
   async createAgent(agentData: Omit<Agent, "id">): Promise<Agent> {
-    const response = await apiClient.post("/agents", this.mapAgentToApiAgent(agentData));
-    return this.mapApiAgentToAgent(response.data);
+    try {
+      const response = await apiClient.post("/agents", this.mapAgentToApiAgent(agentData));
+      return this.mapApiAgentToAgent(response.data);
+    } catch (error) {
+      console.error("Error al crear agente:", error);
+      throw error;
+    }
   }
 
   async getAgentById(id: string): Promise<Agent & { assets: Asset[] }> {
-    const response = await apiClient.get(`/agents/${id}`);
-    const agent = this.mapApiAgentToAgent(response.data);
-    const assets = response.data.assets.map(this.mapApiAssetToAsset);
-    return { ...agent, assets };
+    try {
+      const response = await apiClient.get(`/agents/${id}`);
+      const agent = this.mapApiAgentToAgent(response.data);
+      const assets = response.data.assets ? 
+        response.data.assets.map((asset: any) => this.mapApiAssetToAsset(asset)) : 
+        [];
+      return { ...agent, assets };
+    } catch (error) {
+      console.error(`Error al obtener agente con ID ${id}:`, error);
+      throw error;
+    }
   }
 
   async updateAgent(id: string, agentData: Omit<Agent, "id">): Promise<Agent> {
-    const response = await apiClient.put(`/agents/${id}`, this.mapAgentToApiAgent(agentData));
-    return this.mapApiAgentToAgent(response.data);
+    try {
+      const response = await apiClient.put(`/agents/${id}`, this.mapAgentToApiAgent(agentData));
+      return this.mapApiAgentToAgent(response.data);
+    } catch (error) {
+      console.error(`Error al actualizar agente con ID ${id}:`, error);
+      throw error;
+    }
   }
 
   async deleteAgent(id: string): Promise<void> {
-    await apiClient.delete(`/agents/${id}`);
+    try {
+      await apiClient.delete(`/agents/${id}`);
+    } catch (error) {
+      console.error(`Error al eliminar agente con ID ${id}:`, error);
+      throw error;
+    }
   }
 
   async getAssets(status?: AssetStatus, agentId?: string): Promise<Asset[]> {
-    const params = { status, agentId };
-    const response = await apiClient.get("/assets", { params });
-    return response.data.map(this.mapApiAssetToAsset);
+    try {
+      const params: any = {};
+      if (status) params.status = this.mapAssetStatusToApiStatus(status);
+      if (agentId) params.agentId = agentId;
+      
+      const response = await apiClient.get("/assets", { params });
+      return response.data.map((asset: any) => this.mapApiAssetToAsset(asset));
+    } catch (error) {
+      console.error("Error al obtener activos:", error);
+      throw error;
+    }
   }
 
   async createAsset(assetData: Omit<Asset, "id" | "history">): Promise<Asset> {
-    const response = await apiClient.post("/assets", this.mapAssetToApiAsset(assetData));
-    return this.mapApiAssetToAsset(response.data);
+    try {
+      const response = await apiClient.post("/assets", this.mapAssetToApiAsset(assetData));
+      return this.mapApiAssetToAsset(response.data);
+    } catch (error) {
+      console.error("Error al crear activo:", error);
+      throw error;
+    }
   }
 
   async getAssetById(id: string): Promise<Asset> {
-    const response = await apiClient.get(`/assets/${id}`);
-    return this.mapApiAssetToAsset(response.data);
+    try {
+      const response = await apiClient.get(`/assets/${id}`);
+      return this.mapApiAssetToAsset(response.data);
+    } catch (error) {
+      console.error(`Error al obtener activo con ID ${id}:`, error);
+      throw error;
+    }
   }
 
   async updateAsset(id: string, assetData: Omit<Asset, "id" | "history">): Promise<Asset> {
-    const response = await apiClient.put(`/assets/${id}`, this.mapAssetToApiAsset(assetData));
-    return this.mapApiAssetToAsset(response.data);
+    try {
+      const response = await apiClient.put(`/assets/${id}`, this.mapAssetToApiAsset(assetData));
+      return this.mapApiAssetToAsset(response.data);
+    } catch (error) {
+      console.error(`Error al actualizar activo con ID ${id}:`, error);
+      throw error;
+    }
   }
 
   async deleteAsset(id: string): Promise<void> {
-    await apiClient.delete(`/assets/${id}`);
+    try {
+      await apiClient.delete(`/assets/${id}`);
+    } catch (error) {
+      console.error(`Error al eliminar activo con ID ${id}:`, error);
+      throw error;
+    }
   }
 
   async getAssetsByAgentReport(): Promise<any[]> {
-    const response = await apiClient.get("/reports/assets-by-agent");
-    return response.data;
+    try {
+      const response = await apiClient.get("/reports/assets-by-agent");
+      return response.data;
+    } catch (error) {
+      console.error("Error al obtener reporte de activos por agente:", error);
+      throw error;
+    }
   }
 
   async uploadFile(file: File): Promise<string> {
-    const formData = new FormData();
-    formData.append('file', file);
-    const response = await apiClient.post("/upload", formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-    return response.data.filePath;
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const response = await apiClient.post("/upload", formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      return response.data.filePath;
+    } catch (error) {
+      console.error("Error al subir archivo:", error);
+      throw error;
+    }
   }
 
   // --- Mappers ---
@@ -93,12 +187,85 @@ export class NodeApiRepository implements IInventoryRepository {
       id: apiAgent.id.toString(),
       apellido: apiAgent.name.split(' ').slice(1).join(' '),
       nombre: apiAgent.name.split(' ')[0],
-      dni: 'N/A', // DNI no está en la API
+      dni: apiAgent.dni || 'N/A', // Si existe dni en la API lo usamos, sino 'N/A'
       rol: apiAgent.department, // Usando department como rol
     };
   }
+  
+  private mapAgentToApiAgent(agent: Omit<Agent, "id"> | Agent): any {
+    return {
+      name: `${agent.nombre} ${agent.apellido}`.trim(),
+      department: agent.rol,
+      dni: agent.dni
+    };
+  }
+  
+  private mapApiAssetToAsset(apiAsset: any): Asset {
+    return {
+      id: apiAsset.id.toString(),
+      name: apiAsset.name,
+      description: apiAsset.description || '',
+      serialNumber: apiAsset.serialNumber,
+      purchasePrice: parseFloat(apiAsset.value),
+      currentValue: parseFloat(apiAsset.value),
+      purchaseDate: apiAsset.purchaseDate,
+      currentStatus: this.mapApiStatusToAssetStatus(apiAsset.status),
+      images: apiAsset.imageUrl ? [apiAsset.imageUrl] : [],
+      agentId: apiAsset.agentId?.toString(),
+      locationId: apiAsset.locationId?.toString(),
+      categoryId: apiAsset.categoryId?.toString(),
+      nomenclatureId: apiAsset.nomenclatureId?.toString(),
+      history: [],
+      name: apiAsset.name,
+      description: apiAsset.description || '',
+      serialNumber: apiAsset.serialNumber,
+      value: apiAsset.value,
+      purchaseDate: apiAsset.purchaseDate,
+      status: this.mapApiStatusToAssetStatus(apiAsset.status),
+      imageUrl: apiAsset.imageUrl || null,
+      agentId: apiAsset.agentId?.toString(),
+      locationId: apiAsset.locationId?.toString(),
+      categoryId: apiAsset.categoryId?.toString(),
+      nomenclatureId: apiAsset.nomenclatureId?.toString(),
+      history: []
+    };
+  }
+  
+  private mapAssetToApiAsset(asset: Omit<Asset, "id" | "history"> | Asset): any {
+    return {
+      name: asset.name,
+      description: asset.description,
+      serialNumber: asset.serialNumber,
+      value: asset.value,
+      purchaseDate: asset.purchaseDate,
+      status: this.mapAssetStatusToApiStatus(asset.status),
+      imageUrl: asset.imageUrl,
+      agentId: asset.agentId ? parseInt(asset.agentId) : null,
+      locationId: asset.locationId ? parseInt(asset.locationId) : null,
+      categoryId: asset.categoryId ? parseInt(asset.categoryId) : null,
+      nomenclatureId: asset.nomenclatureId ? parseInt(asset.nomenclatureId) : null
+    };
+  }
+  
+  private mapApiStatusToAssetStatus(apiStatus: string): AssetStatus {
+    const statusMap: Record<string, AssetStatus> = {
+      'active': AssetStatus.ACTIVO,
+      'in_repair': AssetStatus.EN_REPARACION,
+      'decommissioned': AssetStatus.BAJA
+    };
+    return statusMap[apiStatus] || AssetStatus.ACTIVO;
+  }
+  
+  private mapAssetStatusToApiStatus(status: AssetStatus): string {
+    const statusMap: Record<AssetStatus, string> = {
+      [AssetStatus.ACTIVO]: 'active',
+      [AssetStatus.EN_REPARACION]: 'in_repair',
+      [AssetStatus.BAJA]: 'decommissioned'
+    };
+    return statusMap[status] || 'active';
+  }
 
-  private mapAgentToApiAgent(agent: Omit<Agent, "id">): any {
+  // Este método está duplicado y se elimina
     return {
       name: `${agent.nombre} ${agent.apellido}`,
       department: agent.rol,

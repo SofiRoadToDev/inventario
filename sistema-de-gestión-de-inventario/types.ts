@@ -29,12 +29,15 @@ export interface Agent {
 export interface Asset {
   id: string;
   name: string;
+  value: number,
   description: string;
   serialNumber: string;
-  nomenclatureCode: string;
+  status: string;
+  imageUrl: string;
+  nomenclatureId: string;
   categoryId: string;
   locationId: string;
-  agenteId?: string; // Nuevo campo para el agente responsable
+  agentId?: string; // Nuevo campo para el agente responsable
   purchasePrice: number;
   purchaseDate: string;
   currentStatus: AssetStatus;

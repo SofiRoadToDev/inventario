@@ -7,6 +7,18 @@ exports.login = asyncHandler(async (req, res, next) => {
   const { email, password } = req.body;
 
   const user = await User.findOne({ where: { email } });
+
+  // --- DEBUG LOGGING START ---
+  console.log('Login attempt for email:', email);
+  if (user) {
+    console.log('User found in DB.');
+    console.log('Password from request:', password);
+    console.log('Stored hash:', user.password);
+  } else {
+    console.log('User not found in DB.');
+  }
+  // --- DEBUG LOGGING END ---
+
   if (!user) {
     throw new UnauthorizedError('Credenciales inválidas');
   }

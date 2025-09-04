@@ -1,5 +1,7 @@
 import { Asset, Location, Category, Nomenclature, AssetStatus, Agent, InventoryHistory } from '../types';
-import { IInventoryRepository } from './IInventoryRepository';
+import { IInventoryRepository, LoginResponse } from './IInventoryRepository';
+
+const MOCK_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c';
 
 const mockLocations: Location[] = [
   { id: 'loc-1', name: 'Aula 1' },
@@ -111,6 +113,15 @@ let mockAssets: Asset[] = [
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
 class MockApiRepository implements IInventoryRepository {
+  async login(email: string, password: string): Promise<LoginResponse> {
+    console.log("MOCK API: Logging in...");
+    if (email === 'sofi@gmail.com' && password === 'sofi2025') {
+      const user = { id: 1, name: 'Sofi Mock', email: 'sofi@gmail.com' };
+      return new Promise(resolve => setTimeout(() => resolve({ token: MOCK_TOKEN, user }), 300));
+    }
+    return Promise.reject('Invalid mock credentials');
+  }
+
   async getAgents(): Promise<Agent[]> {
     console.log("MOCK API: Fetching all agents...");
     return new Promise(resolve => setTimeout(() => resolve([...agents]), 300));

@@ -900,6 +900,9 @@ components:
         department:
           type: string
           example: "IT"
+        dni:
+          type: string
+          example: "12345678"
         createdAt:
           type: string
           format: date-time
@@ -918,6 +921,9 @@ components:
         department:
           type: string
           example: "IT"
+        dni:
+          type: string
+          example: "12345678"
     AgentWithAssets:
       type: object
       properties:

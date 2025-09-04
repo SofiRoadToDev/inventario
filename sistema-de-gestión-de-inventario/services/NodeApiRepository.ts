@@ -1,5 +1,5 @@
 
-import { Agent, Asset, AssetStatus } from "../types";
+import { Agent, Asset, AssetStatus, LoginResponse } from "../types";
 import { IInventoryRepository } from "./IInventoryRepository";
 import axios, { AxiosError } from "axios";
 
@@ -48,6 +48,16 @@ apiClient.interceptors.response.use(
 );
 
 export class NodeApiRepository implements IInventoryRepository {
+  async login(email: string, password: string): Promise<LoginResponse> {
+    try {
+      const response = await apiClient.post("/auth/login", { email, password });
+      return response.data;
+    } catch (error) {
+      console.error("Error en el login:", error);
+      throw error;
+    }
+  }
+
   async getAgents(): Promise<Agent[]> {
     try {
       const response = await apiClient.get("/agents");
@@ -215,18 +225,6 @@ export class NodeApiRepository implements IInventoryRepository {
       locationId: apiAsset.locationId?.toString(),
       categoryId: apiAsset.categoryId?.toString(),
       nomenclatureId: apiAsset.nomenclatureId?.toString(),
-      history: [],
-      name: apiAsset.name,
-      description: apiAsset.description || '',
-      serialNumber: apiAsset.serialNumber,
-      value: apiAsset.value,
-      purchaseDate: apiAsset.purchaseDate,
-      status: this.mapApiStatusToAssetStatus(apiAsset.status),
-      imageUrl: apiAsset.imageUrl || null,
-      agentId: apiAsset.agentId?.toString(),
-      locationId: apiAsset.locationId?.toString(),
-      categoryId: apiAsset.categoryId?.toString(),
-      nomenclatureId: apiAsset.nomenclatureId?.toString(),
       history: []
     };
   }
@@ -236,10 +234,10 @@ export class NodeApiRepository implements IInventoryRepository {
       name: asset.name,
       description: asset.description,
       serialNumber: asset.serialNumber,
-      value: asset.value,
+      value: asset.currentValue,
       purchaseDate: asset.purchaseDate,
-      status: this.mapAssetStatusToApiStatus(asset.status),
-      imageUrl: asset.imageUrl,
+      status: this.mapAssetStatusToApiStatus(asset.currentStatus),
+      imageUrl: asset.images[0] || null,
       agentId: asset.agentId ? parseInt(asset.agentId) : null,
       locationId: asset.locationId ? parseInt(asset.locationId) : null,
       categoryId: asset.categoryId ? parseInt(asset.categoryId) : null,
@@ -264,72 +262,4 @@ export class NodeApiRepository implements IInventoryRepository {
     };
     return statusMap[status] || 'active';
   }
-
-  // Este método está duplicado y se elimina
-    return {
-      name: `${agent.nombre} ${agent.apellido}`,
-      department: agent.rol,
-    };
-  }
-
-  private mapApiAssetToAsset(apiAsset: any): Asset {
-    return {
-      id: apiAsset.id.toString(),
-      name: apiAsset.name,
-      description: apiAsset.description || '',
-      serialNumber: apiAsset.serialNumber,
-      nomenclatureCode: 'N/A', // No está en la API
-      categoryId: 'N/A', // No está en la API
-      locationId: 'N/A', // No está en la API
-      agenteId: apiAsset.agentId?.toString(),
-      purchasePrice: parseFloat(apiAsset.value),
-      purchaseDate: apiAsset.purchaseDate,
-      currentStatus: this.mapApiStatusToAssetStatus(apiAsset.status),
-      currentValue: parseFloat(apiAsset.value), // Usando el mismo valor de compra
-      images: apiAsset.imageUrl ? [apiAsset.imageUrl] : [],
-      history: [], // La API no provee historial
-    };
-  }
-
-  private mapAssetToApiAsset(asset: Omit<Asset, "id" | "history">): any {
-    return {
-      name: asset.name,
-      description: asset.description,
-      serialNumber: asset.serialNumber,
-      value: asset.purchasePrice,
-      purchaseDate: asset.purchaseDate,
-      status: this.mapAssetStatusToApiStatus(asset.currentStatus),
-      imageUrl: asset.images.length > 0 ? asset.images[0] : undefined,
-      agentId: asset.agenteId ? parseInt(asset.agenteId) : undefined,
-    };
-  }
-
-  private mapApiStatusToAssetStatus(status: string): AssetStatus {
-    switch (status) {
-      case 'active':
-        return AssetStatus.BUENO;
-      case 'in_repair':
-        return AssetStatus.REGULAR;
-      case 'decommissioned':
-        return AssetStatus.DADO_DE_BAJA;
-      default:
-        return AssetStatus.REGULAR;
-    }
-  }
-
-  private mapAssetStatusToApiStatus(status: AssetStatus): string {
-        switch (status) {
-            case AssetStatus.MUY_BUENO:
-            case AssetStatus.BUENO:
-                return 'active';
-            case AssetStatus.REGULAR:
-                return 'in_repair';
-            case AssetStatus.PENDIENTE_BAJA:
-            case AssetStatus.DADO_DE_BAJA:
-            case AssetStatus.MALO:
-                return 'decommissioned';
-            default:
-                return 'active';
-        }
-    }
 }

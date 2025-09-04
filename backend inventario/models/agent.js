@@ -14,6 +14,11 @@ module.exports = (sequelize, DataTypes) => {
     department: {
       type: DataTypes.STRING,
       allowNull: false
+    },
+    dni: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      unique: true
     }
   });
 

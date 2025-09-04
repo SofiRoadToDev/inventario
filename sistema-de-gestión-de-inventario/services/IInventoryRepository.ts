@@ -1,7 +1,20 @@
 
 import { Agent, Asset, AssetStatus } from "../types";
 
+export interface UserResponse {
+  id: number;
+  name: string;
+  email: string;
+}
+
+export interface LoginResponse {
+  token: string;
+  user: UserResponse;
+}
+
 export interface IInventoryRepository {
+  login(email: string, password: string): Promise<LoginResponse>;
+
   getAgents(): Promise<Agent[]>;
   createAgent(agent: Omit<Agent, "id">): Promise<Agent>;
   getAgentById(id: string): Promise<Agent & { assets: Asset[] }>;

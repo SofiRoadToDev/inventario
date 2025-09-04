@@ -100,6 +100,10 @@ const AppContent: React.FC = () => {
     setAgents(prev => prev.map(a => a.id === updatedAgent.id ? updatedAgent : a));
   };
 
+  const handleAgentDeleted = (agentId: string) => {
+    setAgents(prev => prev.filter(a => a.id !== agentId));
+  };
+
   const handleCatalogUpdate = (type: 'locations' | 'categories' | 'nomenclatures', data: any) => {
     switch (type) {
         case 'locations':
@@ -147,7 +151,7 @@ const AppContent: React.FC = () => {
           />
         );
       case 'agents':
-        return <AgentsPage agents={agents} loading={loading} onAgentAdded={handleAgentAdded} onAgentUpdated={handleAgentUpdated} />;
+        return <AgentsPage agents={agents} loading={loading} onAgentAdded={handleAgentAdded} onAgentUpdated={handleAgentUpdated} onAgentDeleted={handleAgentDeleted} />;
       case 'assets_by_agent_report':
         return <AssetsByAgentReport assets={assets} agents={agents} locations={locations} categories={categories} loading={loading} />;
       default:

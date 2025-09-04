@@ -13,6 +13,7 @@ const handleValidationErrors = (req, res, next) => {
 const agentValidation = [
   body('name', 'El nombre es requerido').not().isEmpty().trim().escape(),
   body('department', 'El departamento es requerido').not().isEmpty().trim().escape(),
+  body('dni', 'El DNI debe ser un string').optional().isString().trim().escape(),
   handleValidationErrors,
 ];
 

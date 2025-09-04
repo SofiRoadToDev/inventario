@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Agent } from '../types';
 import { Button, Card, Input, Modal, Spinner } from './ui';
-import { PlusIcon, EditIcon, SearchIcon } from './Icons';
+import { PlusIcon, EditIcon, SearchIcon, TrashIcon } from './Icons';
 import repository from '../services/repositoryFactory';
 import { useToast } from '../contexts/ToastContext';
 
@@ -10,6 +10,7 @@ interface AgentsPageProps {
   loading: boolean;
   onAgentAdded: (agent: Agent) => void;
   onAgentUpdated: (agent: Agent) => void;
+  onAgentDeleted: (agentId: string) => void;
 }
 
 const AgentForm: React.FC<{
@@ -57,8 +58,9 @@ const AgentForm: React.FC<{
     );
 };
 
-const AgentsPage: React.FC<AgentsPageProps> = ({ agents, loading, onAgentAdded, onAgentUpdated }) => {
-  const [modalState, setModalState] = useState<{ type: null | 'edit' | 'add'; agent: Agent | null }>({ type: null, agent: null });
+const AgentsPage: React.FC<AgentsPageProps> = ({ agents, loading, onAgentAdded, onAgentUpdated, onAgentDeleted }) => {
+  const { showToast } = useToast();
+  const [modalState, setModalState] = useState<{ type: null | 'edit' | 'add' | 'delete'; agent: Agent | null }>({ type: null, agent: null });
   const [searchTerm, setSearchTerm] = useState('');
 
   const filteredAgents = useMemo(() => {
@@ -79,7 +81,21 @@ const AgentsPage: React.FC<AgentsPageProps> = ({ agents, loading, onAgentAdded, 
       closeModal();
   };
 
-  const openModal = (type: 'edit' | 'add', agent: Agent | null = null) => {
+  const handleDelete = async () => {
+    if (modalState.type === 'delete' && modalState.agent) {
+        try {
+            await repository.deleteAgent(modalState.agent.id);
+            onAgentDeleted(modalState.agent.id);
+            showToast('Agente eliminado exitosamente', 'success');
+            closeModal();
+        } catch (error: any) {
+            console.error('Error deleting agent:', error);
+            showToast(`Error al eliminar agente: ${error.message || error}`, 'error');
+        }
+    }
+  };
+
+  const openModal = (type: 'edit' | 'add' | 'delete', agent: Agent | null = null) => {
     setModalState({ type, agent });
   };
   
@@ -90,6 +106,7 @@ const AgentsPage: React.FC<AgentsPageProps> = ({ agents, loading, onAgentAdded, 
   const modalTitle = {
       edit: `Editar Agente: ${modalState.agent?.nombre} ${modalState.agent?.apellido}`,
       add: 'Registrar Nuevo Agente',
+      delete: 'Confirmar Eliminación'
   };
 
   return (
@@ -139,6 +156,7 @@ const AgentsPage: React.FC<AgentsPageProps> = ({ agents, loading, onAgentAdded, 
                                 <td className="px-6 py-4 text-right">
                                     <div className="flex justify-end items-center gap-2">
                                         <button onClick={() => openModal('edit', agent)} className="p-1 text-gray-500 hover:text-green-600 dark:hover:text-green-400"><EditIcon className="h-5 w-5" /></button>
+                                        <button onClick={() => openModal('delete', agent)} className="p-1 text-gray-500 hover:text-red-600 dark:hover:text-red-400"><TrashIcon className="h-5 w-5" /></button>
                                     </div>
                                 </td>
                             </tr>
@@ -156,6 +174,15 @@ const AgentsPage: React.FC<AgentsPageProps> = ({ agents, loading, onAgentAdded, 
         size={'md'}
       >
         {(modalState.type === 'add' || modalState.type === 'edit') && <AgentForm agent={modalState.agent} onClose={closeModal} onSave={handleSave} />}
+        {modalState.type === 'delete' && (
+            <div className="space-y-4">
+                <p>¿Estás seguro de que quieres eliminar al agente <strong>{modalState.agent?.nombre} {modalState.agent?.apellido}</strong>? Esta acción no se puede deshacer.</p>
+                <div className="flex justify-end gap-2 pt-4">
+                    <Button type="button" variant="secondary" onClick={closeModal}>Cancelar</Button>
+                    <Button type="button" variant="danger" onClick={handleDelete}>Eliminar</Button>
+                </div>
+            </div>
+        )}
       </Modal>
     </div>
   );

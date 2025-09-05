@@ -1,11 +1,9 @@
 
 export enum AssetStatus {
-  MUY_BUENO = 'Muy Bueno',
-  BUENO = 'Bueno',
-  REGULAR = 'Regular',
-  MALO = 'Malo',
-  PENDIENTE_BAJA = 'Pendiente de Baja',
-  DADO_DE_BAJA = 'Dado de Baja',
+  // Mapea directamente a los estados de la API, pero con etiquetas en español para la UI.
+  ACTIVO = 'Activo',
+  EN_REPARACION = 'En Reparación',
+  BAJA = 'De Baja',
 }
 
 export interface InventoryHistory {
@@ -20,32 +18,27 @@ export interface InventoryHistory {
 
 export interface Agent {
   id: string;
-  apellido: string;
   nombre: string;
-  dni: string;
-  rol: string;
+  apellido: string;
+  departamento: string;
+  dni?: string; // DNI es opcional en la API
+  rol: Role; // El rol es un objeto según la API
 }
 
 export interface Asset {
   id: string;
-  name: string;
-  value: number,
-  description: string;
-  serialNumber: string;
-  status: string;
-  imageUrl: string;
-  nomenclatureId: string;
-  categoryId: string;
-  locationId: string;
-  agentId?: string; // Nuevo campo para el agente responsable
-  purchasePrice: number;
-  purchaseDate: string;
-  currentStatus: AssetStatus;
-  currentValue: number;
-  images: string[];
-  history: InventoryHistory[];
-  writeOffReason?: string;
-  writeOffPhotos?: string[];
+  nombre: string;
+  descripcion?: string;
+  numeroSerie: string;
+  valorCompra: number;
+  fechaCompra: string;
+  estadoActual: AssetStatus;
+  imagenes: string[]; // La API usa imageUrl (singular), la UI puede manejar múltiples
+  agenteId?: string;
+  ubicacionId?: string;
+  categoriaId?:string;
+  nomenclaturaId?: string;
+  historial: InventoryHistory[];
 }
 
 export interface Category {
@@ -59,11 +52,12 @@ export interface Location {
 }
 
 export interface Nomenclature {
-    code: string;
-    name: string;
+  id: string;
+  codigo: string;
+  nombre: string;
 }
 
 export interface Role {
-    id: string;
-    name: string;
+  id: string;
+  nombre: string;
 }

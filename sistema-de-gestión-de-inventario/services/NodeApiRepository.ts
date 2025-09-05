@@ -1,6 +1,6 @@
 
-import { Agent, Asset, AssetStatus, LoginResponse } from "../types";
-import { IInventoryRepository } from "./IInventoryRepository";
+import { Agent, Asset, AssetStatus } from "../types";
+import { IInventoryRepository, LoginResponse } from "./IInventoryRepository";
 import axios, { AxiosError } from "axios";
 
 const API_URL = "http://localhost:3000/api";
@@ -195,53 +195,58 @@ export class NodeApiRepository implements IInventoryRepository {
   private mapApiAgentToAgent(apiAgent: any): Agent {
     return {
       id: apiAgent.id.toString(),
-      apellido: apiAgent.name.split(' ').slice(1).join(' '),
-      nombre: apiAgent.name.split(' ')[0],
-      dni: apiAgent.dni || 'N/A', // Si existe dni en la API lo usamos, sino 'N/A'
-      rol: apiAgent.department, // Usando department como rol
+      // La división del nombre es frágil. Idealmente, la API debería devolver nombre y apellido por separado.
+      nombre: apiAgent.name.split(' ')[0] || '',
+      apellido: apiAgent.name.split(' ').slice(1).join(' ') || '',
+      dni: apiAgent.dni,
+      departamento: apiAgent.department,
+      rol: {
+        id: apiAgent.role.id.toString(),
+        nombre: apiAgent.role.name
+      }
     };
   }
   
   private mapAgentToApiAgent(agent: Omit<Agent, "id"> | Agent): any {
     return {
       name: `${agent.nombre} ${agent.apellido}`.trim(),
-      department: agent.rol,
-      dni: agent.dni
+      department: agent.departamento,
+      dni: agent.dni,
+      roleId: parseInt(agent.rol.id)
     };
   }
   
   private mapApiAssetToAsset(apiAsset: any): Asset {
     return {
       id: apiAsset.id.toString(),
-      name: apiAsset.name,
-      description: apiAsset.description || '',
-      serialNumber: apiAsset.serialNumber,
-      purchasePrice: parseFloat(apiAsset.value),
-      currentValue: parseFloat(apiAsset.value),
-      purchaseDate: apiAsset.purchaseDate,
-      currentStatus: this.mapApiStatusToAssetStatus(apiAsset.status),
-      images: apiAsset.imageUrl ? [apiAsset.imageUrl] : [],
-      agentId: apiAsset.agentId?.toString(),
-      locationId: apiAsset.locationId?.toString(),
-      categoryId: apiAsset.categoryId?.toString(),
-      nomenclatureId: apiAsset.nomenclatureId?.toString(),
-      history: []
+      nombre: apiAsset.name,
+      descripcion: apiAsset.description,
+      numeroSerie: apiAsset.serialNumber,
+      valorCompra: parseFloat(apiAsset.value),
+      fechaCompra: apiAsset.purchaseDate,
+      estadoActual: this.mapApiStatusToAssetStatus(apiAsset.status),
+      imagenes: apiAsset.imageUrl ? [apiAsset.imageUrl] : [],
+      agenteId: apiAsset.agentId?.toString(),
+      ubicacionId: apiAsset.locationId?.toString(),
+      categoriaId: apiAsset.categoryId?.toString(),
+      nomenclaturaId: apiAsset.nomenclatureId?.toString(),
+      historial: [] // El historial se podría cargar por separado si es necesario
     };
   }
   
   private mapAssetToApiAsset(asset: Omit<Asset, "id" | "history"> | Asset): any {
     return {
-      name: asset.name,
-      description: asset.description,
-      serialNumber: asset.serialNumber,
-      value: asset.currentValue,
-      purchaseDate: asset.purchaseDate,
-      status: this.mapAssetStatusToApiStatus(asset.currentStatus),
-      imageUrl: asset.images[0] || null,
-      agentId: asset.agentId ? parseInt(asset.agentId) : null,
-      locationId: asset.locationId ? parseInt(asset.locationId) : null,
-      categoryId: asset.categoryId ? parseInt(asset.categoryId) : null,
-      nomenclatureId: asset.nomenclatureId ? parseInt(asset.nomenclatureId) : null
+      name: asset.nombre,
+      description: asset.descripcion,
+      serialNumber: asset.numeroSerie,
+      value: asset.valorCompra,
+      purchaseDate: asset.fechaCompra,
+      status: this.mapAssetStatusToApiStatus(asset.estadoActual),
+      imageUrl: asset.imagenes[0] || null,
+      agentId: asset.agenteId ? parseInt(asset.agenteId) : null,
+      locationId: asset.ubicacionId ? parseInt(asset.ubicacionId) : null,
+      categoryId: asset.categoriaId ? parseInt(asset.categoriaId) : null,
+      nomenclatureId: asset.nomenclaturaId ? parseInt(asset.nomenclaturaId) : null
     };
   }
   

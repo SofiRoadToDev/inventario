@@ -1,16 +1,21 @@
-const { Agent, Asset } = require('../models');
+const { Agent, Asset, Role } = require('../models');
 const asyncHandler = require('../utils/asyncHandler');
 const { NotFoundError, BadRequestError } = require('../utils/customErrors');
 
 exports.getAllAgents = asyncHandler(async (req, res) => {
-  const agents = await Agent.findAll();
+  const agents = await Agent.findAll({
+    include: [{ model: Role, as: 'role', attributes: ['id', 'name'] }],
+  });
   res.json(agents);
 });
 
 exports.getAgentById = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const agent = await Agent.findByPk(id, {
-    include: [{ model: Asset, as: 'assets' }],
+    include: [
+      { model: Asset, as: 'assets' },
+      { model: Role, as: 'role', attributes: ['id', 'name'] },
+    ],
   });
 
   if (!agent) {
@@ -21,12 +26,37 @@ exports.getAgentById = asyncHandler(async (req, res) => {
 });
 
 exports.createAgent = asyncHandler(async (req, res) => {
+  const { roleId } = req.body;
+
+  // Verificar que el rol exista antes de crear el agente
+  if (roleId) {
+    const role = await Role.findByPk(roleId);
+    if (!role) {
+      throw new BadRequestError('El rol especificado no existe');
+    }
+  }
+
   const agent = await Agent.create(req.body);
-  res.status(201).json(agent);
+
+  // Devolver el agente recién creado con la información de su rol
+  const newAgent = await Agent.findByPk(agent.id, {
+    include: [{ model: Role, as: 'role', attributes: ['id', 'name'] }],
+  });
+
+  res.status(201).json(newAgent);
 });
 
 exports.updateAgent = asyncHandler(async (req, res) => {
   const { id } = req.params;
+  const { roleId } = req.body;
+
+  // Si se está actualizando el rol, verificar que el nuevo rol exista
+  if (roleId) {
+    const role = await Role.findByPk(roleId);
+    if (!role) {
+      throw new BadRequestError('El rol especificado no existe');
+    }
+  }
 
   const agent = await Agent.findByPk(id);
   if (!agent) {
@@ -34,7 +64,12 @@ exports.updateAgent = asyncHandler(async (req, res) => {
   }
 
   await agent.update(req.body);
-  res.json(agent);
+
+  // Devolver el agente actualizado con la información de su rol
+  const updatedAgent = await Agent.findByPk(id, {
+    include: [{ model: Role, as: 'role', attributes: ['id', 'name'] }],
+  });
+  res.json(updatedAgent);
 });
 
 exports.deleteAgent = asyncHandler(async (req, res) => {

@@ -1,15 +1,22 @@
 const express = require('express');
 const router = express.Router();
 const agentController = require('../controllers/agentController');
+const { 
+  agentBodyValidation, 
+  agentUpdateValidation, 
+  agentIdValidation 
+} = require('../validators/agentValidator');
 const authenticate = require('../middleware/authenticate');
-const { agentValidation, agentIdValidation } = require('../validators/agentValidator');
 
 router.use(authenticate);
 
-router.get('/', agentController.getAllAgents);
-router.get('/:id', agentIdValidation, agentController.getAgentById);
-router.post('/', agentValidation, agentController.createAgent);
-router.put('/:id', agentIdValidation, agentValidation, agentController.updateAgent);
-router.delete('/:id', agentIdValidation, agentController.deleteAgent);
+router.route('/')
+  .get(agentController.getAllAgents)
+  .post(agentBodyValidation, agentController.createAgent);
+
+router.route('/:id')
+  .get(agentIdValidation, agentController.getAgentById)
+  .put(agentIdValidation, agentUpdateValidation, agentController.updateAgent)
+  .delete(agentIdValidation, agentController.deleteAgent);
 
 module.exports = router;

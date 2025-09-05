@@ -10,10 +10,20 @@ const handleValidationErrors = (req, res, next) => {
   next();
 };
 
-const agentValidation = [
+const agentBodyValidation = [
   body('name', 'El nombre es requerido').not().isEmpty().trim().escape(),
   body('department', 'El departamento es requerido').not().isEmpty().trim().escape(),
   body('dni', 'El DNI debe ser un string').optional().isString().trim().escape(),
+  body('roleId', 'El rol es requerido').not().isEmpty(),
+  body('roleId', 'El ID del rol debe ser un número entero').isInt(),
+  handleValidationErrors,
+];
+
+const agentUpdateValidation = [
+  body('name').optional().not().isEmpty().withMessage('El nombre no puede estar vacío').trim().escape(),
+  body('department').optional().not().isEmpty().withMessage('El departamento no puede estar vacío').trim().escape(),
+  body('dni').optional().isString().trim().escape(),
+  body('roleId').optional().isInt().withMessage('El ID del rol debe ser un número entero'),
   handleValidationErrors,
 ];
 
@@ -23,6 +33,7 @@ const agentIdValidation = [
 ];
 
 module.exports = {
-  agentValidation,
+  agentBodyValidation,
+  agentUpdateValidation,
   agentIdValidation,
 };

@@ -132,7 +132,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AgentInput'
+              $ref: '#/components/schemas/AgentCreateInput'
       responses:
         '201':
           description: Agente creado exitosamente.
@@ -163,7 +163,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Agent'
+                $ref: '#/components/schemas/AgentWithAssets'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
@@ -184,7 +184,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AgentInput'
+              $ref: '#/components/schemas/AgentUpdateInput'
       responses:
         '200':
           description: Agente actualizado exitosamente.
@@ -902,18 +902,22 @@ components:
           example: "IT"
         dni:
           type: string
+          nullable: true
           example: "12345678"
+        role:
+          $ref: '#/components/schemas/Role'
         createdAt:
           type: string
           format: date-time
         updatedAt:
           type: string
           format: date-time
-    AgentInput:
+    AgentCreateInput:
       type: object
       required:
         - name
         - department
+        - roleId
       properties:
         name:
           type: string
@@ -924,6 +928,26 @@ components:
         dni:
           type: string
           example: "12345678"
+        roleId:
+          type: integer
+          description: ID del rol al que pertenece el agente.
+          example: 1
+    AgentUpdateInput:
+      type: object
+      properties:
+        name:
+          type: string
+          example: "Juan Pérez"
+        department:
+          type: string
+          example: "IT"
+        dni:
+          type: string
+          example: "12345678"
+        roleId:
+          type: integer
+          description: ID del rol al que pertenece el agente.
+          example: 2
     AgentWithAssets:
       type: object
       properties:
@@ -936,6 +960,8 @@ components:
         department:
           type: string
           example: "IT"
+        role:
+          $ref: '#/components/schemas/Role'
         assets:
           type: array
           items:

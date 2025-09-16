@@ -1,5 +1,5 @@
 
-import { Agent, Asset, AssetStatus, Role } from "../types";
+import { Agent, Asset, AssetStatus, Role, Location, Category, Nomenclature } from "../types";
 import { IInventoryRepository, LoginResponse } from "./IInventoryRepository";
 import axios, { AxiosError } from "axios";
 
@@ -73,7 +73,7 @@ export class NodeApiRepository implements IInventoryRepository {
       const response = await apiClient.post("/agents", this.mapAgentToApiAgent(agentData));
       return this.mapApiAgentToAgent(response.data);
     } catch (error) {
-      console.error("Error al crear agente:", error);
+      console.error("Error al crear agente:", error.response.data);
       throw error;
     }
   }
@@ -183,6 +183,45 @@ export class NodeApiRepository implements IInventoryRepository {
       }));
     } catch (error) {
       console.error("Error al obtener roles:", error);
+      throw error;
+    }
+  }
+
+   async getLocations(): Promise<Location[]> {
+    try {
+      const response = await apiClient.get("/locations");
+      return response.data.map((item: any) => ({
+        id: item.id.toString(),
+        name: item.name
+      }));
+    } catch (error) {
+      console.error("Error al obtener ubicaciones:", error);
+      throw error;
+    }
+  }
+
+  async getCategories(): Promise<Category[]> {
+    try {
+      const response = await apiClient.get("/categories");
+      return response.data.map((item: any) => ({
+        id: item.id.toString(),
+        name: item.name
+      }));
+    } catch (error) {
+      console.error("Error al obtener categorías:", error);
+      throw error;
+    }
+  }
+
+  async getNomenclatures(): Promise<Nomenclature[]> {
+    try {
+      const response = await apiClient.get("/nomenclatures");
+      return response.data.map((item: any) => ({
+        id: item.id.toString(),
+        name: item.name
+      }));
+    } catch (error) {
+      console.error("Error al obtener nomencladores:", error);
       throw error;
     }
   }

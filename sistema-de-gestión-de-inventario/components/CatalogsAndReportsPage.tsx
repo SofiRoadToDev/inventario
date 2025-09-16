@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Asset, Category, Location, Nomenclature, Role } from '../types';
 import { Button, Card, Input, Select, Spinner, Modal } from './ui';
 import { DownloadIcon, EditIcon, TrashIcon, PlusIcon } from './Icons';
@@ -11,17 +11,66 @@ interface CatalogsAndReportsPageProps {
   categories: Category[];
   nomenclatures: Nomenclature[];
   roles: Role[];
-  loading: boolean;
   onCatalogUpdate: (type: 'locations' | 'categories' | 'nomenclatures' | 'roles', data: any) => void;
 }
 
-const CatalogsAndReportsPage: React.FC<CatalogsAndReportsPageProps> = ({ assets, locations, categories, nomenclatures, roles, loading, onCatalogUpdate }) => {
+
+
+
+const CatalogsAndReportsPage: React.FC<CatalogsAndReportsPageProps> = () => {
   const [activeTab, setActiveTab] = useState('reports');
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [modalState, setModalState] = useState<{ type: null | 'add' | 'edit'; catalog: 'locations' | 'categories' | 'nomenclatures' | 'roles' | null; item: any | null }>({ type: null, catalog: null, item: null });
   const [newItemValue, setNewItemValue] = useState('');
   const [newNomenclature, setNewNomenclature] = useState({ code: '', name: '' });
   const { showToast } = useToast();
+  const [catalogsLoading, setCatalogsLoading] = useState(true);
+
+  //DATOS DE API
+  const [locations, setLocations] = useState<Location[]>([]);
+    const [categories, setCategories] = useState<Category[]>([]);
+    const [nomenclatures, setNomenclatures] = useState<Nomenclature[]>([]);
+    const [roles, setRoles] = useState<Role[]>([]); // Aquí declaras el estado para roles
+    const [newItemName, setNewItemName] = useState('');
+    const [activeCatalog, setActiveCatalog] = useState<string>('locations');
+
+
+   useEffect(() => {
+        const fetchData = async () => {
+            try {
+                // Asegúrate de que 'repository' esté definido y disponible en este scope.
+                // Usamos Promise.all para ejecutar todas las peticiones en paralelo.
+                const [
+                    locationsData,
+                    categoriesData,
+                    nomenclaturesData,
+                    rolesData
+                ] = await Promise.all([
+                    repository.getLocations(),
+                    repository.getCategories(),
+                    repository.getNomenclatures(),
+                    repository.getRoles(),
+                ]);
+
+                // Actualizamos los estados con los datos recibidos.
+                setLocations(locationsData);
+                setCategories(categoriesData);
+                setNomenclatures(nomenclaturesData);
+                setRoles(rolesData); // Corregido: Se eliminó el punto y la lógica es correcta ahora.
+
+            } catch (error) {
+                console.error("Error fetching data:", error);
+                //toast.error('Error al cargar los catálogos.');
+            } finally {
+                setCatalogsLoading(false);
+            }
+        };
+
+        fetchData();
+    }, []);
+
+
+  
 
   const openModal = (type: 'add' | 'edit', catalog: 'locations' | 'categories' | 'nomenclatures' | 'roles', item: any = null) => {
     setModalState({ type, catalog, item });
@@ -48,36 +97,36 @@ const CatalogsAndReportsPage: React.FC<CatalogsAndReportsPageProps> = ({ assets,
             let newItem;
             if (catalog === 'locations') {
                 if (!newItemValue.trim()) return;
-                newItem = await repository.createLocation({ name: newItemValue.trim() });
-                onCatalogUpdate(catalog, [...locations, newItem]);
+                newItem = await repository.createLocation(newItemValue);
+                setLocations([...locations, newItem]);
             } else if (catalog === 'categories') {
                 if (!newItemValue.trim()) return;
-                newItem = await repository.createCategory({ name: newItemValue.trim() });
-                onCatalogUpdate(catalog, [...categories, newItem]);
+                newItem = await repository.createCategory(newItemValue);
+                setCategories([...categories, newItem]);
             } else if (catalog === 'nomenclatures') {
-                if (!newNomenclature.code.trim() || !newNomenclature.name.trim()) return;
+                if (!newNomenclature.code.trim() || !newNomenclature.name) return;
                 newItem = await repository.createNomenclature(newNomenclature);
-                onCatalogUpdate(catalog, [...nomenclatures, newItem]);
+                setNomenclatures([...nomenclatures, newItem]);
             } else if (catalog === 'roles') {
                 if (!newItemValue.trim()) return;
-                newItem = await repository.createRole({ name: newItemValue.trim() });
-                onCatalogUpdate(catalog, [...roles, newItem]);
+                newItem = await repository.createRole(newItemValue);
+                setRoles([...roles, newItem]);
             }
             showToast('Elemento creado exitosamente', 'success');
         } else if (type === 'edit' && item) {
-            let updatedItem;
+            let updatedItem: any;
             if (catalog === 'locations') {
-                updatedItem = await repository.updateLocation(item.id, { name: newItemValue.trim() });
-                onCatalogUpdate(catalog, locations.map(i => i.id === item.id ? updatedItem : i));
+                updatedItem = await repository.updateLocation(item.id, newItemValue);
+                setLocations(locations.map(i => i.id === item.id ? updatedItem : i));
             } else if (catalog === 'categories') {
-                updatedItem = await repository.updateCategory(item.id, { name: newItemValue.trim() });
-                onCatalogUpdate(catalog, categories.map(i => i.id === item.id ? updatedItem : i));
+                updatedItem = await repository.updateCategory(item.id, newItemValue);
+                setCategories(categories.map(i => i.id === item.id ? updatedItem : i));
             } else if (catalog === 'nomenclatures') {
-                updatedItem = await repository.updateNomenclature(item.id, { name: newNomenclature.name.trim() });
-                onCatalogUpdate(catalog, nomenclatures.map(i => i.id === item.id ? updatedItem : i));
+                updatedItem = await repository.updateNomenclature(item.id, { code: newNomenclature.code.trim(), name: newNomenclature.name.trim() });
+                setNomenclatures(nomenclatures.map(i => i.id === item.id ? updatedItem : i));
             } else if (catalog === 'roles') {
-                updatedItem = await repository.updateRole(item.id, { name: newItemValue.trim() });
-                onCatalogUpdate(catalog, roles.map(i => i.id === item.id ? updatedItem : i));
+                updatedItem = await repository.updateRole(item.id, newItemValue);
+                setRoles(roles.map(i => i.id === item.id ? updatedItem : i));
             }
             showToast('Elemento actualizado exitosamente', 'success');
         }
@@ -94,16 +143,16 @@ const CatalogsAndReportsPage: React.FC<CatalogsAndReportsPageProps> = ({ assets,
             const idToDelete = itemToDelete.id;
             if (catalog === 'locations') {
                 await repository.deleteLocation(idToDelete);
-                onCatalogUpdate(catalog, locations.filter(i => i.id !== idToDelete));
+                setLocations(locations.filter(i => i.id !== idToDelete));
             } else if (catalog === 'categories') {
                 await repository.deleteCategory(idToDelete);
-                onCatalogUpdate(catalog, categories.filter(i => i.id !== idToDelete));
+                setCategories(categories.filter(i => i.id !== idToDelete));
             } else if (catalog === 'nomenclatures') {
                 await repository.deleteNomenclature(idToDelete);
-                onCatalogUpdate(catalog, nomenclatures.filter(i => i.id !== idToDelete));
+                setNomenclatures(nomenclatures.filter(i => i.id !== idToDelete));
             } else if (catalog === 'roles') {
                 await repository.deleteRole(idToDelete);
-                onCatalogUpdate(catalog, roles.filter(i => i.id !== idToDelete));
+                setRoles(roles.filter(i => i.id !== idToDelete));
             }
             showToast('Elemento eliminado exitosamente', 'success');
         } catch (error: any) {

@@ -1,5 +1,5 @@
 
-import { Agent, Asset, AssetStatus, Role } from "../types";
+import { Agent, Asset, AssetStatus, Role, Category, Location, Nomenclature } from "../types";
 
 export interface UserResponse {
   id: number;
@@ -22,6 +22,9 @@ export interface IInventoryRepository {
   deleteAgent(id: string): Promise<void>;
 
   getRoles(): Promise<Role[]>;
+  getLocations(): Promise<Location[]>;
+  getCategories(): Promise<Category[]>;
+  getNomenclatures(): Promise<Nomenclature[]>;
 
   getAssets(status?: AssetStatus, agentId?: string): Promise<Asset[]>;
   createAsset(asset: Omit<Asset, "id" | "history">): Promise<Asset>;
@@ -31,4 +34,20 @@ export interface IInventoryRepository {
 
   getAssetsByAgentReport(): Promise<any[]>;
   uploadFile(file: File): Promise<string>;
+
+  createCategory(name: string): Promise<Category>;
+  createLocation(name: string): Promise<Location>;
+  createNomenclature(nomenclature: {code: string, name: string}): Promise<Nomenclature>;
+  createRole(name: string): Promise<Role>;
+  
+
+  updateNomenclature(id:number, nomenclature: {code: string, name: string}):Promise<Nomenclature>;
+  updateLocation(id:number, name:string):Promise<Location>;
+  updateCategory(id:string, name:string):Promise<Category>;
+  updateRole(id:number, name:string):Promise<Role>;
+
+  deleteCategory(idToDelete: number): Promise<Category>;
+  deleteLocation(idToDelete: number): Promise<Location>;
+  deleteNomenclature(idToDelete: string): Promise<Nomenclature>;
+  deleteRole(idToDelete: number): Promise<Role>;
 }

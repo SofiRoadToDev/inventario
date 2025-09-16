@@ -1,13 +1,10 @@
 'use strict';
 module.exports = {
   up: async (queryInterface, Sequelize) => {
-    await queryInterface.addColumn('Agents', 'role', {
-      type: Sequelize.INTEGER,
-      allowNull: true,
-    
-    });
+    // This migration is now obsolete as roleId is added in the main create-agents-table migration.
+    return Promise.resolve();
   },
   down: async (queryInterface, Sequelize) => {
-    await queryInterface.removeColumn('Agents', 'role');
+    return Promise.resolve();
   }
 };

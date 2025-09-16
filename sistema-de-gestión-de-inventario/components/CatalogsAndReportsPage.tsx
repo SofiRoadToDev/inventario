@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { Asset, Category, Location, Nomenclature } from '../types';
+import { Asset, Category, Location, Nomenclature, Role } from '../types';
 import { Button, Card, Input, Select, Spinner, Modal } from './ui';
 import { DownloadIcon, EditIcon, TrashIcon, PlusIcon } from './Icons';
+import repository from '../services/repositoryFactory';
+import { useToast } from '../contexts/ToastContext';
 
 interface CatalogsAndReportsPageProps {
   assets: Asset[];
@@ -19,6 +21,7 @@ const CatalogsAndReportsPage: React.FC<CatalogsAndReportsPageProps> = ({ assets,
   const [modalState, setModalState] = useState<{ type: null | 'add' | 'edit'; catalog: 'locations' | 'categories' | 'nomenclatures' | 'roles' | null; item: any | null }>({ type: null, catalog: null, item: null });
   const [newItemValue, setNewItemValue] = useState('');
   const [newNomenclature, setNewNomenclature] = useState({ code: '', name: '' });
+  const { showToast } = useToast();
 
   const openModal = (type: 'add' | 'edit', catalog: 'locations' | 'categories' | 'nomenclatures' | 'roles', item: any = null) => {
     setModalState({ type, catalog, item });
@@ -35,61 +38,78 @@ const CatalogsAndReportsPage: React.FC<CatalogsAndReportsPageProps> = ({ assets,
     setNewNomenclature({ code: '', name: '' });
   };
 
-  const handleSave = () => {
-    if (!modalState.catalog) return;
+  const handleSave = async () => {
+    if (!modalState.catalog || !modalState.type) return;
 
-    if (modalState.catalog === 'nomenclatures') {
-      if (!newNomenclature.code.trim() || !newNomenclature.name.trim()) return;
-      if (modalState.type === 'add') {
-        if (nomenclatures.some(n => n.code === newNomenclature.code.trim())) {
-          alert('El código del nomenclador ya existe.');
-          return;
+    const { catalog, type, item } = modalState;
+
+    try {
+        if (type === 'add') {
+            let newItem;
+            if (catalog === 'locations') {
+                if (!newItemValue.trim()) return;
+                newItem = await repository.createLocation({ name: newItemValue.trim() });
+                onCatalogUpdate(catalog, [...locations, newItem]);
+            } else if (catalog === 'categories') {
+                if (!newItemValue.trim()) return;
+                newItem = await repository.createCategory({ name: newItemValue.trim() });
+                onCatalogUpdate(catalog, [...categories, newItem]);
+            } else if (catalog === 'nomenclatures') {
+                if (!newNomenclature.code.trim() || !newNomenclature.name.trim()) return;
+                newItem = await repository.createNomenclature(newNomenclature);
+                onCatalogUpdate(catalog, [...nomenclatures, newItem]);
+            } else if (catalog === 'roles') {
+                if (!newItemValue.trim()) return;
+                newItem = await repository.createRole({ name: newItemValue.trim() });
+                onCatalogUpdate(catalog, [...roles, newItem]);
+            }
+            showToast('Elemento creado exitosamente', 'success');
+        } else if (type === 'edit' && item) {
+            let updatedItem;
+            if (catalog === 'locations') {
+                updatedItem = await repository.updateLocation(item.id, { name: newItemValue.trim() });
+                onCatalogUpdate(catalog, locations.map(i => i.id === item.id ? updatedItem : i));
+            } else if (catalog === 'categories') {
+                updatedItem = await repository.updateCategory(item.id, { name: newItemValue.trim() });
+                onCatalogUpdate(catalog, categories.map(i => i.id === item.id ? updatedItem : i));
+            } else if (catalog === 'nomenclatures') {
+                updatedItem = await repository.updateNomenclature(item.id, { name: newNomenclature.name.trim() });
+                onCatalogUpdate(catalog, nomenclatures.map(i => i.id === item.id ? updatedItem : i));
+            } else if (catalog === 'roles') {
+                updatedItem = await repository.updateRole(item.id, { name: newItemValue.trim() });
+                onCatalogUpdate(catalog, roles.map(i => i.id === item.id ? updatedItem : i));
+            }
+            showToast('Elemento actualizado exitosamente', 'success');
         }
-        const newItem = { code: newNomenclature.code.trim(), name: newNomenclature.name.trim() };
-        onCatalogUpdate('nomenclatures', [...nomenclatures, newItem]);
-      } else if (modalState.type === 'edit' && modalState.item) {
-        const updatedItems = nomenclatures.map(i =>
-          i.code === modalState.item.code ? { ...i, name: newNomenclature.name.trim() } : i
-        );
-        onCatalogUpdate('nomenclatures', updatedItems);
-      }
-    } else if (modalState.catalog === 'roles') {
-      if (!newItemValue.trim()) return;
-      if (modalState.type === 'add') {
-        const newItem = { id: `rol-${Date.now()}`, name: newItemValue.trim() };
-        onCatalogUpdate('roles', [...roles, newItem]);
-      } else if (modalState.type === 'edit' && modalState.item) {
-        const updatedItems = roles.map(i =>
-          i.id === modalState.item.id ? { ...i, name: newItemValue.trim() } : i
-        );
-        onCatalogUpdate('roles', updatedItems);
-      }
-    } else {
-      if (!newItemValue.trim()) return;
-      if (modalState.type === 'add') {
-        const newItem = { id: `new-${Date.now()}`, name: newItemValue.trim() };
-        onCatalogUpdate(modalState.catalog, [...(catalogData[modalState.catalog] || []), newItem]);
-      } else if (modalState.type === 'edit' && modalState.item) {
-        const updatedItems = (catalogData[modalState.catalog] || []).map((i: any) =>
-          i.id === modalState.item.id ? { ...i, name: newItemValue.trim() } : i
-        );
-        onCatalogUpdate(modalState.catalog, updatedItems);
-      }
+        closeModal();
+    } catch (error: any) {
+        console.error(`Error saving ${catalog}:`, error);
+        showToast(`Error al guardar: ${error.message || error}`, 'error');
     }
-    closeModal();
   };
 
-  const handleDelete = (catalog: 'locations' | 'categories' | 'nomenclatures' | 'roles', id: string) => {
+  const handleDelete = async (catalog: 'locations' | 'categories' | 'nomenclatures' | 'roles', itemToDelete: any) => {
     if (window.confirm('¿Está seguro de que desea eliminar este elemento? Esta acción no se puede deshacer.')) {
-      let updatedItems;
-      if (catalog === 'nomenclatures') {
-        updatedItems = nomenclatures.filter(i => i.code !== id);
-      } else if (catalog === 'roles') {
-        updatedItems = roles.filter(i => i.id !== id);
-      } else {
-        updatedItems = (catalogData[catalog] || []).filter((i: any) => i.id !== id);
-      }
-      onCatalogUpdate(catalog, updatedItems);
+        try {
+            const idToDelete = itemToDelete.id;
+            if (catalog === 'locations') {
+                await repository.deleteLocation(idToDelete);
+                onCatalogUpdate(catalog, locations.filter(i => i.id !== idToDelete));
+            } else if (catalog === 'categories') {
+                await repository.deleteCategory(idToDelete);
+                onCatalogUpdate(catalog, categories.filter(i => i.id !== idToDelete));
+            } else if (catalog === 'nomenclatures') {
+                await repository.deleteNomenclature(idToDelete);
+                onCatalogUpdate(catalog, nomenclatures.filter(i => i.id !== idToDelete));
+            } else if (catalog === 'roles') {
+                await repository.deleteRole(idToDelete);
+                onCatalogUpdate(catalog, roles.filter(i => i.id !== idToDelete));
+            }
+            showToast('Elemento eliminado exitosamente', 'success');
+        } catch (error: any) {
+            console.error(`Error deleting ${catalog}:`, error);
+            showToast(`Error al eliminar: ${error.message || error}`, 'error');
+        }
     }
   };
 
@@ -224,7 +244,7 @@ const CatalogsAndReportsPage: React.FC<CatalogsAndReportsPageProps> = ({ assets,
                                 <span>{loc.name}</span>
                                 <div className="flex gap-2">
                                     <button onClick={() => openModal('edit', 'locations', loc)} className="p-1 text-gray-500 hover:text-blue-600"><EditIcon className="h-4 w-4"/></button>
-                                    <button onClick={() => handleDelete('locations', loc.id)} className="p-1 text-gray-500 hover:text-red-600"><TrashIcon className="h-4 w-4"/></button>
+                                    <button onClick={() => handleDelete('locations', loc)} className="p-1 text-gray-500 hover:text-red-600"><TrashIcon className="h-4 w-4"/></button>
                                 </div>
                             </li>
                         ))}
@@ -241,7 +261,7 @@ const CatalogsAndReportsPage: React.FC<CatalogsAndReportsPageProps> = ({ assets,
                                 <span>{cat.name}</span>
                                 <div className="flex gap-2">
                                     <button onClick={() => openModal('edit', 'categories', cat)} className="p-1 text-gray-500 hover:text-blue-600"><EditIcon className="h-4 w-4"/></button>
-                                    <button onClick={() => handleDelete('categories', cat.id)} className="p-1 text-gray-500 hover:text-red-600"><TrashIcon className="h-4 w-4"/></button>
+                                    <button onClick={() => handleDelete('categories', cat)} className="p-1 text-gray-500 hover:text-red-600"><TrashIcon className="h-4 w-4"/></button>
                                 </div>
                             </li>
                         ))}
@@ -261,7 +281,7 @@ const CatalogsAndReportsPage: React.FC<CatalogsAndReportsPageProps> = ({ assets,
                                 </div>
                                 <div className="flex gap-2">
                                     <button onClick={() => openModal('edit', 'nomenclatures', nom)} className="p-1 text-gray-500 hover:text-blue-600"><EditIcon className="h-4 w-4"/></button>
-                                    <button onClick={() => handleDelete('nomenclatures', nom.code)} className="p-1 text-gray-500 hover:text-red-600"><TrashIcon className="h-4 w-4"/></button>
+                                    <button onClick={() => handleDelete('nomenclatures', nom)} className="p-1 text-gray-500 hover:text-red-600"><TrashIcon className="h-4 w-4"/></button>
                                 </div>
                             </li>
                         ))}
@@ -279,7 +299,7 @@ const CatalogsAndReportsPage: React.FC<CatalogsAndReportsPageProps> = ({ assets,
                                 <span>{role.name}</span>
                                 <div className="flex gap-2">
                                     <button onClick={() => openModal('edit', 'roles', role)} className="p-1 text-gray-500 hover:text-blue-600"><EditIcon className="h-4 w-4"/></button>
-                                    <button onClick={() => handleDelete('roles', role.id)} className="p-1 text-gray-500 hover:text-red-600"><TrashIcon className="h-4 w-4"/></button>
+                                    <button onClick={() => handleDelete('roles', role)} className="p-1 text-gray-500 hover:text-red-600"><TrashIcon className="h-4 w-4"/></button>
                                 </div>
                             </li>
                         ))}

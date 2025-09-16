@@ -3,10 +3,14 @@ const app = require('../server');
 const { sequelize } = require('../models');
 
 let token;
+let testRole;
 
 describe('Nomenclatures API', () => {
   beforeAll(async () => {
     await sequelize.models.User.destroy({ where: {} });
+    await sequelize.models.Role.destroy({ where: {} });
+
+    testRole = await sequelize.models.Role.create({ name: 'Test Role for Nomenclatures' });
 
     await request(app).post('/api/auth/register').send({
       name: 'Nomenclature Tester',
@@ -199,7 +203,7 @@ describe('Nomenclatures API', () => {
       const agentRes = await request(app)
         .post('/api/agents')
         .set('Authorization', `Bearer ${token}`)
-        .send({ name: 'Agent for Nomenclature Test', department: 'Testing' });
+        .send({ name: 'Agent for Nomenclature Test', department: 'Testing', roleId: testRole.id });
       const agentId = agentRes.body.id;
 
       // 3. Crear un activo y asignarlo a la nomenclatura

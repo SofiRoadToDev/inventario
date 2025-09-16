@@ -1,5 +1,5 @@
 
-import { Agent, Asset, AssetStatus } from "../types";
+import { Agent, Asset, AssetStatus, Role } from "../types";
 import { IInventoryRepository, LoginResponse } from "./IInventoryRepository";
 import axios, { AxiosError } from "axios";
 
@@ -174,6 +174,19 @@ export class NodeApiRepository implements IInventoryRepository {
     }
   }
 
+  async getRoles(): Promise<Role[]> {
+    try {
+      const response = await apiClient.get("/roles");
+      return response.data.map((role: any) => ({
+        id: role.id.toString(),
+        name: role.name
+      }));
+    } catch (error) {
+      console.error("Error al obtener roles:", error);
+      throw error;
+    }
+  }
+
   async uploadFile(file: File): Promise<string> {
     try {
       const formData = new FormData();
@@ -195,24 +208,22 @@ export class NodeApiRepository implements IInventoryRepository {
   private mapApiAgentToAgent(apiAgent: any): Agent {
     return {
       id: apiAgent.id.toString(),
-      // La división del nombre es frágil. Idealmente, la API debería devolver nombre y apellido por separado.
-      nombre: apiAgent.name.split(' ')[0] || '',
-      apellido: apiAgent.name.split(' ').slice(1).join(' ') || '',
+      nombre: apiAgent.name || '',
+      apellido: apiAgent.lastname || '',
       dni: apiAgent.dni,
       departamento: apiAgent.department,
-      rol: {
-        id: apiAgent.role.id.toString(),
-        nombre: apiAgent.role.name
-      }
+      rol: apiAgent.role?.name || '',
+      roleId: apiAgent.role?.id?.toString() || ''
     };
   }
   
   private mapAgentToApiAgent(agent: Omit<Agent, "id"> | Agent): any {
     return {
-      name: `${agent.nombre} ${agent.apellido}`.trim(),
-      department: agent.departamento,
+      name: agent.nombre,
+      lastname: agent.apellido,
+      department: agent.departamento || '',
       dni: agent.dni,
-      roleId: parseInt(agent.rol.id)
+      roleId: agent.roleId ? parseInt(agent.roleId) : null
     };
   }
   

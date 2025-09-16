@@ -21,7 +21,7 @@ exports.getAllAssets = asyncHandler(async (req, res) => {
   const assets = await Asset.findAll({
     where,
     include: [
-      { model: Agent, as: 'agent', attributes: ['id', 'name', 'department'] },
+      { model: Agent, as: 'agent', attributes: ['id', 'name'] },
       { model: Location, as: 'location', attributes: ['id', 'name'] },
       { model: Category, as: 'category', attributes: ['id', 'name'] },
       { model: Nomenclature, as: 'nomenclature', attributes: ['id', 'code'] },
@@ -35,7 +35,7 @@ exports.getAssetById = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const asset = await Asset.findByPk(id, {
     include: [
-        { model: Agent, as: 'agent', attributes: ['id', 'name', 'department'] },
+        { model: Agent, as: 'agent', attributes: ['id', 'name'] },
         { model: Location, as: 'location', attributes: ['id', 'name'] },
         { model: Category, as: 'category', attributes: ['id', 'name'] },
         { model: Nomenclature, as: 'nomenclature', attributes: ['id', 'code'] },
@@ -56,7 +56,7 @@ exports.createAsset = asyncHandler(async (req, res) => {
     const asset = await Asset.create(req.body);
     const newAsset = await Asset.findByPk(asset.id, {
         include: [
-            { model: Agent, as: 'agent', attributes: ['id', 'name', 'department'] },
+            { model: Agent, as: 'agent', attributes: ['id', 'name'] },
             { model: Location, as: 'location', attributes: ['id', 'name'] },
             { model: Category, as: 'category', attributes: ['id', 'name'] },
             { model: Nomenclature, as: 'nomenclature', attributes: ['id', 'code'] },
@@ -85,7 +85,7 @@ exports.updateAsset = asyncHandler(async (req, res) => {
     await asset.update(req.body);
     const updatedAsset = await Asset.findByPk(id, {
         include: [
-            { model: Agent, as: 'agent', attributes: ['id', 'name', 'department'] },
+            { model: Agent, as: 'agent', attributes: ['id', 'name'] },
             { model: Location, as: 'location', attributes: ['id', 'name'] },
             { model: Category, as: 'category', attributes: ['id', 'name'] },
             { model: Nomenclature, as: 'nomenclature', attributes: ['id', 'code'] },

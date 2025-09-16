@@ -13,6 +13,7 @@ const reportRoutes = require('./routes/reports');
 const locationRoutes = require('./routes/locations');
 const categoryRoutes = require('./routes/categories');
 const nomenclatureRoutes = require('./routes/nomenclatures');
+const roleRoutes = require('./routes/roles');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -43,6 +44,7 @@ app.use('/api/reports', reportRoutes);
 app.use('/api/locations', locationRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/nomenclatures', nomenclatureRoutes);
+app.use('/api/roles', roleRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });

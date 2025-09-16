@@ -26,6 +26,7 @@ exports.getAgentById = asyncHandler(async (req, res) => {
 });
 
 exports.createAgent = asyncHandler(async (req, res) => {
+  console.log('request', req.body)
   const { roleId } = req.body;
 
   // Verificar que el rol exista antes de crear el agente

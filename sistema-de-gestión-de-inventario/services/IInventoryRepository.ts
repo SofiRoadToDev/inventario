@@ -1,5 +1,5 @@
 
-import { Agent, Asset, AssetStatus } from "../types";
+import { Agent, Asset, AssetStatus, Role } from "../types";
 
 export interface UserResponse {
   id: number;
@@ -20,6 +20,8 @@ export interface IInventoryRepository {
   getAgentById(id: string): Promise<Agent & { assets: Asset[] }>;
   updateAgent(id: string, agent: Omit<Agent, "id">): Promise<Agent>;
   deleteAgent(id: string): Promise<void>;
+
+  getRoles(): Promise<Role[]>;
 
   getAssets(status?: AssetStatus, agentId?: string): Promise<Asset[]>;
   createAsset(asset: Omit<Asset, "id" | "history">): Promise<Asset>;

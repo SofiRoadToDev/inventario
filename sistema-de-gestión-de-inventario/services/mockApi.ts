@@ -1,4 +1,4 @@
-import { Asset, Location, Category, Nomenclature, AssetStatus, Agent, InventoryHistory } from '../types';
+import { Asset, Location, Category, Nomenclature, AssetStatus, Agent, InventoryHistory, Role } from '../types';
 import { IInventoryRepository, LoginResponse } from './IInventoryRepository';
 
 const MOCK_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c';
@@ -24,6 +24,12 @@ const mockNomenclatures: Nomenclature[] = [
     { code: 'MOB-MES-001', name: 'Mesa de Alumno'},
     { code: 'EQI-COM-001', name: 'Computadora de Escritorio'},
     { code: 'EQI-PRO-001', name: 'Proyector Multimedia'},
+];
+
+const mockRoles: Role[] = [
+    { id: '1', name: 'Administrador' },
+    { id: '2', name: 'Agente' },
+    { id: '3', name: 'Supervisor' },
 ];
 
 let agents: Agent[] = [
@@ -227,6 +233,11 @@ class MockApiRepository implements IInventoryRepository {
           assets: mockAssets.filter(asset => asset.agenteId === agent.id)
       }));
       return new Promise(resolve => setTimeout(() => resolve(report), 700));
+  }
+
+  async getRoles(): Promise<Role[]> {
+      console.log("MOCK API: Fetching roles...");
+      return new Promise(resolve => setTimeout(() => resolve([...mockRoles]), 200));
   }
 
   async uploadFile(file: File): Promise<string> {

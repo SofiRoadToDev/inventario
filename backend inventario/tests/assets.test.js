@@ -4,12 +4,15 @@ const { sequelize } = require('../models');
 
 let token;
 let agentId;
+let testRole;
 
 describe('Assets API', () => {
   beforeAll(async () => {
-    // Limpiar tablas
     await sequelize.models.User.destroy({ where: {} });
     await sequelize.models.Agent.destroy({ where: {} });
+    await sequelize.models.Role.destroy({ where: {} });
+
+    testRole = await sequelize.models.Role.create({ name: 'Test Role for Assets' });
 
     // Registrar usuario
     await request(app).post('/api/auth/register').send({
@@ -29,7 +32,7 @@ describe('Assets API', () => {
     const agentRes = await request(app)
       .post('/api/agents')
       .set('Authorization', `Bearer ${token}`)
-      .send({ name: 'Test Agent for Assets', department: 'Testing' });
+      .send({ name: 'Test Agent for Assets', department: 'Testing', roleId: testRole.id });
     agentId = agentRes.body.id;
   });
 

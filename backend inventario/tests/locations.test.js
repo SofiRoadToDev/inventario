@@ -3,10 +3,14 @@ const app = require('../server');
 const { sequelize } = require('../models');
 
 let token;
+let testRole;
 
 describe('Locations API', () => {
   beforeAll(async () => {
     await sequelize.models.User.destroy({ where: {} });
+    await sequelize.models.Role.destroy({ where: {} });
+
+    testRole = await sequelize.models.Role.create({ name: 'Test Role for Locations' });
 
     await request(app).post('/api/auth/register').send({
       name: 'Location Tester',
@@ -189,7 +193,7 @@ describe('Locations API', () => {
       const agentRes = await request(app)
         .post('/api/agents')
         .set('Authorization', `Bearer ${token}`)
-        .send({ name: 'Agent for Location Test', department: 'Testing' });
+        .send({ name: 'Agent for Location Test', department: 'Testing', roleId: testRole.id });
       const agentId = agentRes.body.id;
 
       // 3. Crear un activo y asignarlo a la ubicación

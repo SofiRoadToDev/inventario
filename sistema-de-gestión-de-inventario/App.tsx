@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Asset, Category, Location, Nomenclature, Agent } from './types';
+import { Asset, Category, Location, Nomenclature, Agent, Role } from './types';
 import { DashboardIcon, AssetsIcon, MobileIcon, ReportsIcon, CatalogIcon, SunIcon, MoonIcon, UsersIcon, ReportIcon, MenuIcon, XIcon, LogoutIcon } from './components/Icons';
 import DashboardPage from './components/DashboardPage';
 import AssetsPage from './components/AssetsPage';
@@ -26,6 +26,7 @@ const AppContent: React.FC = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [nomenclatures, setNomenclatures] = useState<Nomenclature[]>([]);
   const [agents, setAgents] = useState<Agent[]>([]);
+  const [roles, setRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [theme, setTheme] = useState<Theme>(() => {
     if (typeof window !== 'undefined' && window.localStorage) {
@@ -47,12 +48,14 @@ const AppContent: React.FC = () => {
     setLoading(true);
     try {
       // Fetch core data from the repository
-      const [assetsData, agentsData] = await Promise.all([
+      const [assetsData, agentsData, rolesData] = await Promise.all([
         repository.getAssets(),
         repository.getAgents(),
+        repository.getRoles(),
       ]);
       setAssets(assetsData);
       setAgents(agentsData);
+      setRoles(rolesData);
 
       // Fetch additional mock data if using mock repository
       if (import.meta.env.VITE_API_SOURCE !== 'NODE_API') {

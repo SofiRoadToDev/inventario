@@ -20,9 +20,10 @@ export interface Agent {
   id: string;
   nombre: string;
   apellido: string;
-  departamento: string;
+  departamento?: string;
   dni?: string; // DNI es opcional en la API
-  rol: Role; // El rol es un objeto según la API
+  rol: string; // El nombre del rol
+  roleId?: string; // ID del rol
 }
 
 export interface Asset {
@@ -59,5 +60,5 @@ export interface Nomenclature {
 
 export interface Role {
   id: string;
-  nombre: string;
+  name: string;
 }

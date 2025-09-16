@@ -1,7 +1,7 @@
 'use strict';
 module.exports = {
   up: async (queryInterface, Sequelize) => {
-    await queryInterface.createTable('Agents', {
+    await queryInterface.createTable('agents', {
       id: {
         allowNull: false,
         autoIncrement: true,
@@ -12,7 +12,7 @@ module.exports = {
         type: Sequelize.STRING,
         allowNull: false
       },
-      department: {
+      lastname: {
         type: Sequelize.STRING,
         allowNull: false
       },
@@ -20,6 +20,15 @@ module.exports = {
         type: Sequelize.STRING,
         allowNull: true,
         unique: true
+      },
+      roleId: {
+        type: Sequelize.INTEGER,
+        references: {
+          model: 'roles',
+          key: 'id',
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'SET NULL',
       },
       createdAt: {
         allowNull: false,
@@ -32,6 +41,6 @@ module.exports = {
     });
   },
   down: async (queryInterface, Sequelize) => {
-    await queryInterface.dropTable('Agents');
+    await queryInterface.dropTable('agents');
   }
 };

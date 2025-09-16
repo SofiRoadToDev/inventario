@@ -1,17 +1,27 @@
 'use strict';
+const { Model } = require('sequelize');
 
 module.exports = (sequelize, DataTypes) => {
-  const Agent = sequelize.define('Agent', {
-    id: {
-      type: DataTypes.INTEGER,
-      primaryKey: true,
-      autoIncrement: true
-    },
+  class Agent extends Model {
+    static associate(models) {
+      Agent.hasMany(models.Asset, {
+        foreignKey: 'agentId',
+        as: 'assets'
+      });
+
+      Agent.belongsTo(models.Role, {
+        foreignKey: 'roleId',
+        as: 'role'
+      });
+    }
+  }
+
+  Agent.init({
     name: {
       type: DataTypes.STRING,
       allowNull: false
     },
-    department: {
+    lastname: {
       type: DataTypes.STRING,
       allowNull: false
     },
@@ -19,15 +29,19 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING,
       allowNull: true,
       unique: true
+    },
+    roleId: {
+      type: DataTypes.INTEGER,
+      references: {
+        model: 'roles',
+        key: 'id'
+      }
     }
+  }, {
+    sequelize,
+    modelName: 'Agent',
+    tableName: 'agents',
   });
-
-  Agent.associate = function(models) {
-    Agent.hasMany(models.Asset, {
-      foreignKey: 'agentId',
-      as: 'assets'
-    });
-  };
 
   return Agent;
 };

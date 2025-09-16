@@ -1,6 +1,6 @@
-import React, { useState, useMemo } from 'react';
-import { Agent } from '../types';
-import { Button, Card, Input, Modal, Spinner } from './ui';
+import React, { useState, useMemo, useEffect } from 'react';
+import { Agent, Role } from '../types';
+import { Button, Card, Input, Modal, Spinner, Select } from './ui';
 import { PlusIcon, EditIcon, SearchIcon, TrashIcon } from './Icons';
 import repository from '../services/repositoryFactory';
 import { useToast } from '../contexts/ToastContext';
@@ -17,24 +17,45 @@ const AgentForm: React.FC<{
     agent?: Agent | null;
     onClose: () => void;
     onSave: (agent: Agent) => void;
-}> = ({ agent, onClose, onSave }) => {
+    roles: Role[];
+}> = ({ agent, onClose, onSave, roles }) => {
     const { showToast } = useToast();
+
+    const getInitialRoleId = () => {
+        if (agent && agent.roleId) {
+            return agent.roleId;
+        } else if (agent && agent.rol && roles) {
+            const role = roles.find(r => r.name === agent.rol);
+            return role ? String(role.id) : '';
+        }
+        return '';
+    };
+
     const [formData, setFormData] = useState({
         apellido: agent?.apellido || '',
         nombre: agent?.nombre || '',
         dni: agent?.dni || '',
-        rol: agent?.rol || 'agente',
+        roleId: getInitialRoleId(),
     });
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        const selectedRole = roles.find(role => role.id = formData.roleId);
+        
+        const dataToSend = {
+            nombre: formData.nombre,
+            apellido: formData.apellido,
+            dni: formData.dni,
+            roleId: Number(formData.roleId),
+        };
+
         try {
             if (agent) {
-                const updatedAgent = await repository.updateAgent(agent.id, formData);
+                const updatedAgent = await repository.updateAgent(agent.id, dataToSend);
                 onSave(updatedAgent);
                 showToast('Agente actualizado exitosamente', 'success');
             } else {
-                const newAgent = await repository.createAgent(formData);
+                const newAgent = await repository.createAgent(dataToSend);
                 onSave(newAgent);
                 showToast('Agente creado exitosamente', 'success');
             }
@@ -49,7 +70,12 @@ const AgentForm: React.FC<{
             <Input label="Apellido" id="apellido" value={formData.apellido} onChange={e => setFormData({...formData, apellido: e.target.value})} required />
             <Input label="Nombre" id="nombre" value={formData.nombre} onChange={e => setFormData({...formData, nombre: e.target.value})} required />
             <Input label="DNI" id="dni" value={formData.dni} onChange={e => setFormData({...formData, dni: e.target.value})} required />
-            <Input label="Rol" id="rol" value={formData.rol} onChange={e => setFormData({...formData, rol: e.target.value})} required />
+            <Select label="Rol" id="roleId" value={formData.roleId} onChange={e => setFormData({...formData, roleId: e.target.value})} required>
+                <option value="">Seleccione un rol</option>
+                {roles.map(role => (
+                    <option key={role.id} value={role.id}>{role.name}</option>
+                ))}
+            </Select>
             <div className="flex justify-end gap-2 pt-4">
                 <Button type="button" variant="secondary" onClick={onClose}>Cancelar</Button>
                 <Button type="submit" variant="primary">Guardar</Button>
@@ -62,12 +88,31 @@ const AgentsPage: React.FC<AgentsPageProps> = ({ agents, loading, onAgentAdded, 
   const { showToast } = useToast();
   const [modalState, setModalState] = useState<{ type: null | 'edit' | 'add' | 'delete'; agent: Agent | null }>({ type: null, agent: null });
   const [searchTerm, setSearchTerm] = useState('');
+  const [roles, setRoles] = useState<Role[]>([]);
+  const [loadingRoles, setLoadingRoles] = useState(false);
+  
+  useEffect(() => {
+    const fetchRoles = async () => {
+      setLoadingRoles(true);
+      try {
+        const rolesData = await repository.getRoles();
+        setRoles(rolesData);
+      } catch (error: any) {
+        console.error('Error fetching roles:', error);
+        showToast(`Error al cargar roles: ${error.message || error}`, 'error');
+      } finally {
+        setLoadingRoles(false);
+      }
+    };
+    
+    fetchRoles();
+  }, []);
 
   const filteredAgents = useMemo(() => {
     return agents.filter(agent => {
       const searchMatch = agent.nombre.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           agent.apellido.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          agent.dni.toLowerCase().includes(searchTerm.toLowerCase());
+                          agent.dni!.toLowerCase().includes(searchTerm.toLowerCase());
       return searchMatch;
     });
   }, [agents, searchTerm]);
@@ -173,7 +218,7 @@ const AgentsPage: React.FC<AgentsPageProps> = ({ agents, loading, onAgentAdded, 
         title={modalState.type ? modalTitle[modalState.type] : ''}
         size={'md'}
       >
-        {(modalState.type === 'add' || modalState.type === 'edit') && <AgentForm agent={modalState.agent} onClose={closeModal} onSave={handleSave} />}
+        {(modalState.type === 'add' || modalState.type === 'edit') && <AgentForm agent={modalState.agent} onClose={closeModal} onSave={handleSave} roles={roles} />}
         {modalState.type === 'delete' && (
             <div className="space-y-4">
                 <p>¿Estás seguro de que quieres eliminar al agente <strong>{modalState.agent?.nombre} {modalState.agent?.apellido}</strong>? Esta acción no se puede deshacer.</p>

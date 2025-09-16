@@ -4,14 +4,19 @@ export const Card: React.FC<{ children: React.ReactNode; className?: string }> =
   <div className={`bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 ${className}`}>{children}</div>
 );
 
-export const Button: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'secondary' | 'danger'; children: React.ReactNode }> = ({ children, className, variant = 'primary', ...props }) => {
-  const baseClasses = 'px-4 py-2 rounded-md font-semibold transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2';
+export const Button: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'secondary' | 'danger'; size?: 'sm' | 'md' | 'lg'; children: React.ReactNode }> = ({ children, className, variant = 'primary', size = 'md', ...props }) => {
+  const baseClasses = 'font-semibold transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2';
   const variantClasses = {
     primary: 'bg-blue-600 hover:bg-blue-700 focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 text-white',
     secondary: 'bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 focus:ring-2 focus:ring-offset-2 focus:ring-gray-500',
     danger: 'bg-red-600 hover:bg-red-700 focus:ring-2 focus:ring-offset-2 focus:ring-red-500 text-white',
   };
-  return <button className={`${baseClasses} ${variantClasses[variant]} ${className}`} {...props}>{children}</button>;
+  const sizeClasses = {
+    sm: 'px-2 py-1 text-sm rounded-sm',
+    md: 'px-4 py-2 text-base rounded-md',
+    lg: 'px-6 py-3 text-lg rounded-lg',
+  };
+  return <button className={`${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${className}`} {...props}>{children}</button>;
 };
 
 export const Input: React.FC<React.InputHTMLAttributes<HTMLInputElement> & { label?: string }> = ({ label, id, ...props }) => (

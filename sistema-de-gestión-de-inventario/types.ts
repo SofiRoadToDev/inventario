@@ -18,17 +18,17 @@ export interface InventoryHistory {
 
 export interface Agent {
   id: string;
-  nombre: string;
+  name: string;
   apellido: string;
   departamento?: string;
   dni?: string; // DNI es opcional en la API
-  rol: string; // El nombre del rol
+  rol: string; // El name del rol
   roleId?: string; // ID del rol
 }
 
 export interface Asset {
   id: string;
-  nombre: string;
+  name: string;
   descripcion?: string;
   numeroSerie: string;
   valorCompra: number;
@@ -37,9 +37,9 @@ export interface Asset {
   imagenes: string[]; // La API usa imageUrl (singular), la UI puede manejar múltiples
   agenteId?: string;
   ubicacionId?: string;
-  categoriaId?:string;
+  categoryId?:string;
   nomenclaturaId?: string;
-  historial: InventoryHistory[];
+  history: InventoryHistory[];
 }
 
 export interface Category {
@@ -55,7 +55,7 @@ export interface Location {
 export interface Nomenclature {
   id: string;
   codigo: string;
-  nombre: string;
+  name: string;
 }
 
 export interface Role {

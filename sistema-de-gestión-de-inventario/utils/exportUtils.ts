@@ -1,4 +1,4 @@
-import { Asset, Category, Location, Nomenclature } from "../types";
+import { Asset, Category, Location } from "../types";
 
 
 
@@ -11,9 +11,9 @@ export const handleExportCSV = (assets : Asset[], selectedYear:number, locations
     reportAssets.forEach(asset => {
         const historyEntry = asset.history.find(h => h.year === selectedYear) || asset.history[0];
         const row = [
-            asset.id,
-            `"${asset.nombre}"`,
-            asset.nomenclatureCode,
+            asset.id,   
+            `"${asset.name}"`,
+            asset.nomenclaturaId || 'N/A',
             `"${categories.find(c => c.id === asset.categoryId)?.name || 'N/A'}"`,
             `"${locations.find(l => l.id === historyEntry.locationId)?.name || 'N/A'}"`,
             historyEntry.status,
@@ -47,7 +47,7 @@ export  const handleExportPDF = (assets : Asset[], selectedYear:number, location
         const assetData = [
             asset.id,
             asset.name,
-            asset.nomenclatureCode,
+            asset.nomenclaturaId,
             categories.find(c => c.id === asset.categoryId)?.name || 'N/A',
             locations.find(l => l.id === historyEntry.locationId)?.name || 'N/A',
             historyEntry.status,

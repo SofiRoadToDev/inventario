@@ -1,58 +1,29 @@
-module.exports = () => {
-  require('dotenv').config({ path: require('path').resolve(__dirname, '../.env') });
+require('dotenv/config'); // Carga las variables de .env
 
-  const dbDialect = process.env.DB_DIALECT || 'sqlite';
-
-  const configs = {
-    development: {
-      sqlite: {
-        dialect: 'sqlite',
-        storage: './inventario_db.sqlite'
+module.exports = {
+  development: {
+    dialect: process.env.DB_DIALECT || 'sqlite',
+    storage: process.env.DB_STORAGE || './dev.sqlite', // DB para desarrollo
+    logging: false,
+  },
+  test: {
+    dialect: process.env.DB_DIALECT_TEST || 'sqlite',
+    storage: process.env.DB_STORAGE_TEST || './test.sqlite', // DB para tests
+    logging: false, // No mostrar logs de SQL durante los tests
+  },
+  production: {
+    username: process.env.DB_USERNAME,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+    host: process.env.DB_HOST,
+    port: process.env.DB_PORT,
+    dialect: 'postgres',
+    dialectOptions: {
+      ssl: {
+        require: true,
+        rejectUnauthorized: false,
       },
-      postgres: {
-        username: process.env.DB_USER || 'postgres',
-        password: process.env.DB_PASSWORD || 'password',
-        database: process.env.DB_NAME || 'inventario_db',
-        host: process.env.DB_HOST || 'localhost',
-        dialect: 'postgres'
-      }
     },
-    test: {
-      sqlite: {
-        dialect: 'sqlite',
-        storage: './inventario_db_test.sqlite', // DB separada para tests
-        logging: false
-      },
-      postgres: {
-        username: process.env.DB_USER || 'postgres',
-        password: process.env.DB_PASSWORD || 'password',
-        database: process.env.DB_NAME_TEST || 'inventario_test',
-        host: process.env.DB_HOST || 'localhost',
-        dialect: 'postgres',
-        logging: false
-      }
-    },
-    production: {
-      sqlite: {
-        dialect: 'sqlite',
-        storage: './inventario_db.sqlite' // No se recomienda usar SQLite en producción
-      },
-      postgres: {
-        use_env_variable: 'DATABASE_URL',
-        dialect: 'postgres',
-        dialectOptions: {
-          ssl: {
-            require: true,
-            rejectUnauthorized: false
-          }
-        }
-      }
-    }
-  };
-
-  return {
-    development: configs.development[dbDialect],
-    test: configs.test[dbDialect],
-    production: configs.production[dbDialect]
-  };
+    logging: false,
+  },
 };

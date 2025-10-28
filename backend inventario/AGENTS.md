@@ -1,0 +1,1 @@
+Ante cada peticion del usuario el agente de ia debe planificar los pasos para completar la tarea y ofrecer una lista ordenada de pasos con una breve descripcion, sin codigo, para que el usuario la apruebe. Y solo entonces proceder a realizar los cambios.

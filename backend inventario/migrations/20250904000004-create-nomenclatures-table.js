@@ -17,14 +17,6 @@ module.exports = {
         allowNull: false,
         unique: true
       },
-      description: {
-        type: Sequelize.TEXT,
-        allowNull: true
-      },
-      type: {
-        type: Sequelize.STRING,
-        allowNull: false
-      },
       createdAt: {
         allowNull: false,
         type: Sequelize.DATE

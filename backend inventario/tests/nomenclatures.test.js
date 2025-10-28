@@ -1,32 +1,24 @@
 const request = require('supertest');
 const app = require('../server');
 const { sequelize } = require('../models');
+const { getTestAuthToken } = require('./test-helper');
 
 let token;
-let testRole;
+const { Nomenclature, Asset, Agent, Role } = sequelize.models;
 
 describe('Nomenclatures API', () => {
-  beforeAll(async () => {
-    await sequelize.models.User.destroy({ where: {} });
-    await sequelize.models.Role.destroy({ where: {} });
-
-    testRole = await sequelize.models.Role.create({ name: 'Test Role for Nomenclatures' });
-
-    await request(app).post('/api/auth/register').send({
-      name: 'Nomenclature Tester',
-      email: 'nomenclature_tester@example.com',
-      password: 'password123',
-    });
-
-    const loginRes = await request(app).post('/api/auth/login').send({
-      email: 'nomenclature_tester@example.com',
-      password: 'password123',
-    });
-    token = loginRes.body.token;
-  });
-
+  // beforeEach se ejecuta antes de CADA prueba (it).
+  // Esto garantiza un aislamiento perfecto entre pruebas.
   beforeEach(async () => {
-    await sequelize.models.Nomenclature.destroy({ where: {} });
+    token = await getTestAuthToken();
+    // Limpiamos todas las tablas que se modifican en esta suite de pruebas.
+    // El orden es importante para evitar errores de clave foránea:
+    // primero se eliminan los registros de las tablas que tienen dependencias.
+    await Asset.destroy({ truncate: true, cascade: true });
+    await Agent.destroy({ truncate: true, cascade: true });
+    await Nomenclature.destroy({ truncate: true, cascade: true });
+    // No es necesario limpiar Role, ya que se gestiona en el setup global
+    // y las pruebas no deberían eliminar los roles base ('User', 'Admin').
   });
 
   it('debería denegar el acceso sin un token', async () => {
@@ -39,7 +31,7 @@ describe('Nomenclatures API', () => {
       const res = await request(app)
         .post('/api/nomenclatures')
         .set('Authorization', `Bearer ${token}`)
-        .send({ name: 'Laptop', code: 'LT', type: 'General' });
+        .send({ name: 'Laptop', code: 'LT' });
 
       expect(res.statusCode).toEqual(201);
       expect(res.body).toHaveProperty('id');
@@ -50,7 +42,7 @@ describe('Nomenclatures API', () => {
       const res = await request(app)
         .post('/api/nomenclatures')
         .set('Authorization', `Bearer ${token}`)
-        .send({ code: 'LT', type: 'General' });
+        .send({ code: 'LT' });
 
       expect(res.statusCode).toEqual(400);
       expect(res.body.error).toContain('El nombre es requerido');
@@ -60,7 +52,7 @@ describe('Nomenclatures API', () => {
       const res = await request(app)
         .post('/api/nomenclatures')
         .set('Authorization', `Bearer ${token}`)
-        .send({ name: 'Desktop', type: 'General' });
+        .send({ name: 'Desktop' });
 
       expect(res.statusCode).toEqual(400);
       expect(res.body.error).toContain('El código es requerido');
@@ -69,42 +61,49 @@ describe('Nomenclatures API', () => {
     it('debería denegar la creación sin un token de autenticación', async () => {
       const res = await request(app)
         .post('/api/nomenclatures')
-        .send({ name: 'Unauthorized Nomenclature', code: 'UN', type: 'General' });
+        .send({ name: 'Unauthorized Nomenclature', code: 'UN' });
 
       expect(res.statusCode).toEqual(401);
+    });
+
+    it('debería devolver un error si el código ya existe', async () => {
+      // Arrange: Crear una nomenclatura inicial.
+      await Nomenclature.create({ name: 'Laptop', code: 'LT' });
+
+      // Act: Intentar crear otra nomenclatura con el mismo código.
+      const res = await request(app)
+        .post('/api/nomenclatures')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ name: 'Laptop Model X', code: 'LT' });
+
+      expect(res.statusCode).toEqual(400);
+      expect(res.body.error).toBe('El código ya está en uso');
     });
   });
 
   describe('GET /api/nomenclatures', () => {
-    beforeEach(async () => {
-      await request(app)
-        .post('/api/nomenclatures')
-        .set('Authorization', `Bearer ${token}`)
-        .send({ name: 'Nomenclature A', code: 'NA', type: 'General' });
-      await request(app)
-        .post('/api/nomenclatures')
-        .set('Authorization', `Bearer ${token}`)
-        .send({ name: 'Nomenclature B', code: 'NB', type: 'General' });
-    });
-
+    // Ya no necesitamos un beforeEach aquí, creamos los datos directamente en la prueba.
     it('debería devolver una lista de nomenclaturas', async () => {
+      await Nomenclature.bulkCreate([
+        { name: 'Nomenclature A', code: 'NA' },
+        { name: 'Nomenclature B', code: 'NB' },
+      ]);
+
       const res = await request(app)
         .get('/api/nomenclatures')
         .set('Authorization', `Bearer ${token}`);
 
       expect(res.statusCode).toEqual(200);
       expect(Array.isArray(res.body)).toBe(true);
-      expect(res.body.length).toBe(2);
+      // Ahora podemos hacer una aserción exacta porque controlamos el estado.
+      expect(res.body).toHaveLength(2);
     });
   });
 
   describe('GET /api/nomenclatures/:id', () => {
     it('debería devolver una sola nomenclatura por su ID', async () => {
-      const newNomenclatureRes = await request(app)
-        .post('/api/nomenclatures')
-        .set('Authorization', `Bearer ${token}`)
-        .send({ name: 'Specific Nomenclature', code: 'SN', type: 'General' });
-      const nomenclatureId = newNomenclatureRes.body.id;
+      const newNomenclature = await Nomenclature.create({ name: 'Specific Nomenclature', code: 'SN' });
+      const nomenclatureId = newNomenclature.id;
 
       const res = await request(app)
         .get(`/api/nomenclatures/${nomenclatureId}`)
@@ -112,6 +111,7 @@ describe('Nomenclatures API', () => {
 
       expect(res.statusCode).toEqual(200);
       expect(res.body.name).toBe('Specific Nomenclature');
+      expect(res.body.code).toBe('SN');
     });
 
     it('debería devolver 404 si la nomenclatura no existe', async () => {
@@ -126,16 +126,12 @@ describe('Nomenclatures API', () => {
 
   describe('PUT /api/nomenclatures/:id', () => {
     it('debería actualizar una nomenclatura exitosamente', async () => {
-      const newNomenclatureRes = await request(app)
-        .post('/api/nomenclatures')
-        .set('Authorization', `Bearer ${token}`)
-        .send({ name: 'Old Nomenclature Name', code: 'ON', type: 'General' });
-      const nomenclatureId = newNomenclatureRes.body.id;
-
+      const nomenclature = await Nomenclature.create({ name: 'Old Nomenclature Name', code: 'ON' });
+      const nomenclatureId = nomenclature.id;
       const res = await request(app)
         .put(`/api/nomenclatures/${nomenclatureId}`)
         .set('Authorization', `Bearer ${token}`)
-        .send({ name: 'New Nomenclature Name', code: 'NN', type: 'General' });
+        .send({ name: 'New Nomenclature Name', code: 'NN' });
 
       expect(res.statusCode).toEqual(200);
       expect(res.body.name).toBe('New Nomenclature Name');
@@ -145,42 +141,34 @@ describe('Nomenclatures API', () => {
       const res = await request(app)
         .put('/api/nomenclatures/9999')
         .set('Authorization', `Bearer ${token}`)
-        .send({ name: 'Non Existent Nomenclature', code: 'NE', type: 'General' });
+        .send({ name: 'Non Existent Nomenclature', code: 'NE' });
 
       expect(res.statusCode).toEqual(404);
     });
 
     it('debería devolver un error de validación al actualizar', async () => {
-      const newNomenclatureRes = await request(app)
-        .post('/api/nomenclatures')
-        .set('Authorization', `Bearer ${token}`)
-        .send({ name: 'Valid Nomenclature', code: 'VN', type: 'General' });
-      const nomenclatureId = newNomenclatureRes.body.id;
-
+      const nomenclature = await Nomenclature.create({ name: 'Valid Nomenclature', code: 'VN' });
+      const nomenclatureId = nomenclature.id;
       const res = await request(app)
         .put(`/api/nomenclatures/${nomenclatureId}`)
         .set('Authorization', `Bearer ${token}`)
-        .send({ name: '', code: 'VC', type: 'General' }); // Nombre inválido
+        .send({ name: '', code: 'VC' }); // Nombre inválido
 
       expect(res.statusCode).toEqual(400);
-      expect(res.body.error).toBe('El nombre no puede estar vacío');
+      expect(res.body.error).toContain('El nombre es requerido');
     });
   });
 
   describe('DELETE /api/nomenclatures/:id', () => {
     it('debería eliminar una nomenclatura exitosamente', async () => {
-      const newNomenclatureRes = await request(app)
-        .post('/api/nomenclatures')
-        .set('Authorization', `Bearer ${token}`)
-        .send({ name: 'To Be Deleted', code: 'TD', type: 'General' });
-      const nomenclatureId = newNomenclatureRes.body.id;
-
+      const nomenclature = await Nomenclature.create({ name: 'To Be Deleted', code: 'TD' });
+      const nomenclatureId = nomenclature.id;
       const res = await request(app)
         .delete(`/api/nomenclatures/${nomenclatureId}`)
         .set('Authorization', `Bearer ${token}`);
 
-      expect(res.statusCode).toEqual(200);
-      expect(res.body.message).toBe('Nomenclatura eliminada exitosamente');
+      // Corregido: Las operaciones DELETE exitosas sin contenido deben devolver 204.
+      expect(res.statusCode).toEqual(204);
     });
 
     it('debería devolver 404 si la nomenclatura a eliminar no existe', async () => {
@@ -192,37 +180,33 @@ describe('Nomenclatures API', () => {
     });
 
     it('debería devolver 400 si se intenta eliminar una nomenclatura con activos asignados', async () => {
-      // 1. Crear una nomenclatura
-      const nomenclatureRes = await request(app)
-        .post('/api/nomenclatures')
-        .set('Authorization', `Bearer ${token}`)
-        .send({ name: 'Nomenclature With Asset', code: 'NWA', type: 'General' });
-      const nomenclatureId = nomenclatureRes.body.id;
+      // --- Arrange: Crear todas las entidades necesarias directamente en la BD ---
+      // 1. Crear Rol, Agente y Nomenclatura
+      const [agentRole] = await Role.findOrCreate({ where: { name: 'User' } });
+      const agent = await Agent.create({
+        name: 'Agent',
+        lastname: 'for Nomenclature Test',
+        roleId: agentRole.id
+      });
+      const nomenclature = await Nomenclature.create({
+        name: 'Nomenclature With Asset',
+        code: 'NWA'
+      });
 
-      // 2. Crear un agente (necesario para crear un activo)
-      const agentRes = await request(app)
-        .post('/api/agents')
-        .set('Authorization', `Bearer ${token}`)
-        .send({ name: 'Agent for Nomenclature Test', department: 'Testing', roleId: testRole.id });
-      const agentId = agentRes.body.id;
-
-      // 3. Crear un activo y asignarlo a la nomenclatura
-      await request(app)
-        .post('/api/assets')
-        .set('Authorization', `Bearer ${token}`)
-        .send({
+      // 2. Crear un Activo y asociarlo a la nomenclatura y al agente
+      await Asset.create({
           name: 'Test Asset for Nomenclature',
           serialNumber: `SN-NOM-${Date.now()}`,
           value: 100,
           purchaseDate: '2024-01-01',
-          status: 'active',
-          agentId: agentId,
-          nomenclatureId: nomenclatureId,
+          status: 'BUENO',
+          agentId: agent.id,
+          nomenclatureId: nomenclature.id,
         });
 
       // 4. Intentar eliminar la nomenclatura
       const res = await request(app)
-        .delete(`/api/nomenclatures/${nomenclatureId}`)
+        .delete(`/api/nomenclatures/${nomenclature.id}`)
         .set('Authorization', `Bearer ${token}`);
 
       expect(res.statusCode).toEqual(400);

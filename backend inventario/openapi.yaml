@@ -16,6 +16,10 @@ servers:
   - url: https://inventario-api.com/api
     description: Servidor de producción
 
+tags:
+  - name: Roles
+    description: Gestión de roles de usuario.
+
 paths:
   /health:
     get:
@@ -239,7 +243,7 @@ paths:
           description: Filtrar por estado del activo.
           schema:
             type: string
-            enum: [active, in_repair, decommissioned]
+            enum: [MALO, REGULAR, BUENO, MUY BUENO]
             example: active
         - name: agentId
           in: query
@@ -735,6 +739,132 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
+  /roles:
+    get:
+      summary: Listar todos los roles
+      description: Obtener lista de todos los roles registrados.
+      tags:
+        - Roles
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de roles.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Role'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      summary: Crear nuevo rol
+      description: Registrar un nuevo rol en el sistema.
+      tags:
+        - Roles
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RoleInput'
+      responses:
+        '201':
+          description: Rol creado exitosamente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Role'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /roles/{id}:
+    get:
+      summary: Obtener rol por ID
+      description: Obtener información detallada de un rol específico.
+      tags:
+        - Roles
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Información del rol.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Role'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    put:
+      summary: Actualizar rol
+      description: Actualizar información de un rol existente.
+      tags:
+        - Roles
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RoleInput'
+      responses:
+        '200':
+          description: Rol actualizado exitosamente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Role'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    delete:
+      summary: Eliminar rol
+      description: Eliminar un rol del sistema. No se puede eliminar si tiene agentes asignados.
+      tags:
+        - Roles
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Rol eliminado exitosamente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessMessage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
   /reports/assets-by-agent:
     get:
       summary: Reporte de activos por agente
@@ -771,11 +901,15 @@ paths:
           multipart/form-data:
             schema:
               type: object
+              required:
+                - files
               properties:
-                file:
-                  type: string
-                  format: binary
-                  description: Archivo de imagen (JPG, PNG, GIF, etc.).
+                files:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+                  description: Uno o más archivos de imagen (JPG, PNG, etc.).
       responses:
         '200':
           description: Archivo subido exitosamente.
@@ -784,9 +918,12 @@ paths:
               schema:
                 type: object
                 properties:
-                  filePath:
-                    type: string
-                    example: "/files/file-1642089600000-123456789.jpg"
+                  filePaths:
+                    type: array
+                    items:
+                      type: string
+                    example:
+                      - "/files/file-1642089600000-123456789.jpg"
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -896,10 +1033,10 @@ components:
           example: 1
         name:
           type: string
-          example: "Juan Pérez"
-        department:
+          example: "Juan"
+        lastname:
           type: string
-          example: "IT"
+          example: "Pérez"
         dni:
           type: string
           nullable: true
@@ -916,15 +1053,15 @@ components:
       type: object
       required:
         - name
-        - department
+        - lastname
         - roleId
       properties:
         name:
           type: string
-          example: "Juan Pérez"
-        department:
+          example: "Juan"
+        lastname:
           type: string
-          example: "IT"
+          example: "Pérez"
         dni:
           type: string
           example: "12345678"
@@ -937,10 +1074,10 @@ components:
       properties:
         name:
           type: string
-          example: "Juan Pérez"
-        department:
+          example: "Juan"
+        lastname:
           type: string
-          example: "IT"
+          example: "Pérez"
         dni:
           type: string
           example: "12345678"
@@ -956,10 +1093,10 @@ components:
           example: 1
         name:
           type: string
-          example: "Juan Pérez"
-        department:
+          example: "Juan"
+        lastname:
           type: string
-          example: "IT"
+          example: "Pérez"
         role:
           $ref: '#/components/schemas/Role'
         assets:
@@ -994,14 +1131,17 @@ components:
           example: "2024-01-15"
         status:
           type: string
-          enum: [active, in_repair, decommissioned]
-          example: "active"
-        imageUrl:
-          type: string
+          enum: [MALO, REGULAR, BUENO, MUY BUENO]
+          example: "BUENO"
+        imageUrls:
+          type: array
+          items:
+            type: string
           nullable: true
-          example: "/files/laptop-image.jpg"
+          example: ["/files/laptop-image.jpg", "/files/laptop-image-2.jpg"]
         agentId:
           type: integer
+          nullable: true
           example: 1
         locationId:
           type: integer
@@ -1050,11 +1190,14 @@ components:
           example: "2024-01-15"
         status:
           type: string
-          enum: [active, in_repair, decommissioned]
-          example: "active"
-        imageUrl:
-          type: string
-          example: "/files/laptop-image.jpg"
+          enum: [MALO, REGULAR, BUENO, MUY BUENO]
+          example: "BUENO"
+        imageUrls:
+          type: array
+          items:
+            type: string
+          nullable: true
+          example: ["/files/laptop-image.jpg"]
         agentId:
           type: integer
           nullable: true
@@ -1086,10 +1229,6 @@ components:
           type: string
           nullable: true
           example: "Ubicación en la sede central"
-        address:
-          type: string
-          nullable: true
-          example: "123 Main St"
         createdAt:
           type: string
           format: date-time
@@ -1107,9 +1246,6 @@ components:
         description:
           type: string
           example: "Ubicación en la sede central"
-        address:
-          type: string
-          example: "123 Main St"
 
     # Schemas de Categoría
     Category:
@@ -1156,13 +1292,6 @@ components:
         code:
           type: string
           example: "EQ-INF"
-        description:
-          type: string
-          nullable: true
-          example: "Código para equipos informáticos"
-        type:
-          type: string
-          example: "Hardware"
         createdAt:
           type: string
           format: date-time
@@ -1174,7 +1303,6 @@ components:
       required:
         - name
         - code
-        - type
       properties:
         name:
           type: string
@@ -1182,12 +1310,6 @@ components:
         code:
           type: string
           example: "EQ-INF"
-        description:
-          type: string
-          example: "Código para equipos informáticos"
-        type:
-          type: string
-          example: "Hardware"
     NomenclatureUpdateInput:
       type: object
       properties:
@@ -1197,12 +1319,32 @@ components:
         code:
           type: string
           example: "LT-UPD"
-        description:
+
+    # Schemas de Rol
+    Role:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
           type: string
-          example: "Descripción actualizada"
-        type:
+          example: "Administrator"
+        createdAt:
           type: string
-          example: "Software"
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    RoleInput:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          example: "Administrator"
+
 
     # Schemas Genéricos
     Error:

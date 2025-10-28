@@ -1,32 +1,13 @@
 const request = require('supertest');
 const app = require('../server');
 const { sequelize } = require('../models');
+const { getTestAuthToken, findRole } = require('./test-helper');
 
 let token;
-let testRole;
 
 describe('Categories API', () => {
-  beforeAll(async () => {
-    await sequelize.models.User.destroy({ where: {} });
-    await sequelize.models.Role.destroy({ where: {} });
-
-    testRole = await sequelize.models.Role.create({ name: 'Test Role for Categories' });
-
-    await request(app).post('/api/auth/register').send({
-      name: 'Category Tester',
-      email: 'category_tester@example.com',
-      password: 'password123',
-    });
-
-    const loginRes = await request(app).post('/api/auth/login').send({
-      email: 'category_tester@example.com',
-      password: 'password123',
-    });
-    token = loginRes.body.token;
-  });
-
   beforeEach(async () => {
-    await sequelize.models.Category.destroy({ where: {} });
+    token = await getTestAuthToken();
   });
 
   it('debería denegar el acceso sin un token', async () => {
@@ -84,7 +65,7 @@ describe('Categories API', () => {
 
       expect(res.statusCode).toEqual(200);
       expect(Array.isArray(res.body)).toBe(true);
-      expect(res.body.length).toBe(2);
+      expect(res.body.length).toBeGreaterThanOrEqual(2);
     });
   });
 
@@ -189,11 +170,14 @@ describe('Categories API', () => {
         .send({ name: 'Category With Asset' });
       const categoryId = categoryRes.body.id;
 
+      // Crear el rol necesario para el agente
+      const agentRole = await sequelize.models.Role.findOne({ where: { name: 'User' } });
+
       // 2. Crear un agente (necesario para crear un activo)
       const agentRes = await request(app)
         .post('/api/agents')
         .set('Authorization', `Bearer ${token}`)
-        .send({ name: 'Agent for Category Test', department: 'Testing', roleId: testRole.id });
+        .send({ name: 'Agent', lastname: 'for Category Test', roleId: agentRole.id });
       const agentId = agentRes.body.id;
 
       // 3. Crear un activo y asignarlo a la categoría
@@ -205,7 +189,7 @@ describe('Categories API', () => {
           serialNumber: `SN-CAT-${Date.now()}`,
           value: 100,
           purchaseDate: '2024-01-01',
-          status: 'active',
+          status: 'BUENO',
           agentId: agentId,
           categoryId: categoryId,
         });

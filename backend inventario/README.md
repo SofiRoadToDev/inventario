@@ -10,6 +10,7 @@ API RESTful para la gestión de inventario, construida con Node.js, Express y Se
 - **Gestión de Ubicaciones:** CRUD para las ubicaciones físicas de los activos.
 - **Gestión de Categorías:** CRUD para categorizar los activos.
 - **Gestión de Nomenclaturas:** CRUD para los códigos de clasificación de activos.
+- **Gestión de Roles:** CRUD para los roles de los agentes.
 - **Reportes:** Generación de reportes (ej. activos por agente).
 - **Subida de Archivos:** Endpoint para subir imágenes asociadas a los activos.
 - **Base de Datos Dual:** Soporte para PostgreSQL y SQLite.
@@ -94,6 +95,13 @@ La URL base para todos los endpoints es `/api`.
 - `POST /` - Crear una nueva nomenclatura.
 - `PUT /:id` - Actualizar una nomenclatura.
 - `DELETE /:id` - Eliminar una nomenclatura.
+
+### Roles (`/roles`)
+- `GET /` - Listar todos los roles.
+- `GET /:id` - Obtener un rol por su ID.
+- `POST /` - Crear un nuevo rol.
+- `PUT /:id` - Actualizar un rol.
+- `DELETE /:id` - Eliminar un rol.
 
 ### Reportes (`/reports`)
 - `GET /assets-by-agent` - Reporte de activos agrupados por agente.

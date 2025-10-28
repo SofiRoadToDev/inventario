@@ -2,7 +2,7 @@ import { Asset, Category, Location } from "../types";
 
 
 
-export const handleExportCSV = (assets : Asset[], selectedYear:number, locations : Location[], categories :Category []) => {
+export const handleExportCSV = (assets: Asset[], selectedYear: number, locations: Location[], categories: Category[]) => {
     const reportAssets = assets.filter(a => a.history.some(h => h.year === selectedYear));
     
     let csvContent = "data:text/csv;charset=utf-8,";
@@ -31,7 +31,7 @@ export const handleExportCSV = (assets : Asset[], selectedYear:number, locations
     document.body.removeChild(link);
   };
 
-export  const handleExportPDF = (event : assets : Asset[], selectedYear:number, locations : Location[], categories :Category [] ) => {
+export const handleExportPDF = (assets: Asset[], selectedYear: number, locations: Location[], categories: Category[]) => {
     const doc = new (window as any).jspdf.jsPDF();
     const reportAssets = assets.filter(a => a.history.some(h => h.year === selectedYear));
 

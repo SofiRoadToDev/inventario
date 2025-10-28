@@ -12,8 +12,9 @@ const assetRoutes = require('./routes/assets');
 const reportRoutes = require('./routes/reports');
 const locationRoutes = require('./routes/locations');
 const categoryRoutes = require('./routes/categories');
-const nomenclatureRoutes = require('./routes/nomenclatures');
 const roleRoutes = require('./routes/roles');
+const nomenclatureRoutes = require('./routes/nomenclatures');
+
 
 const app = express();
 const PORT = process.env.PORT || 3000;

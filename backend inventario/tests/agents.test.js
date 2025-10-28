@@ -1,44 +1,25 @@
 const request = require('supertest');
 const app = require('../server');
 const { sequelize } = require('../models');
+const { getTestAuthToken, findRole } = require('./test-helper');
 
-// Variable global para almacenar el token de autenticación
+const { Agent, Asset, Role } = sequelize.models;
+
 let token;
-// Variables globales para almacenar roles de prueba
 let testRole;
 let testRole2;
 
 describe('Agents API', () => {
-  // Antes de todas las pruebas de agentes, crear un usuario y obtener un token
+  // Se ejecuta una vez antes de todas las pruebas en este archivo.
   beforeAll(async () => {
-    // Limpiar tablas relevantes
-    await sequelize.models.User.destroy({ where: {} });
-    await sequelize.models.Role.destroy({ where: {} });
+    token = await getTestAuthToken();
+    // Limpiamos las tablas para asegurar un estado inicial limpio.
+    await Asset.destroy({ truncate: true, cascade: true });
+    await Agent.destroy({ truncate: true, cascade: true });
 
-    // Registrar un usuario de prueba
-    await request(app).post('/api/auth/register').send({
-      name: 'Agent Tester',
-      email: 'agent_tester@example.com',
-      password: 'password123',
-    });
-
-    // Iniciar sesión para obtener el token
-    const loginRes = await request(app).post('/api/auth/login').send({
-      email: 'agent_tester@example.com',
-      password: 'password123',
-    });
-
-    token = loginRes.body.token; // Guardar el token para usarlo en las pruebas
-
-    // Crear roles de prueba para usar en los tests de agentes
-    testRole = await sequelize.models.Role.create({ name: 'Tester' });
-    testRole2 = await sequelize.models.Role.create({ name: 'Developer' });
-  });
-
-  // Limpiar la tabla de agentes antes de cada prueba individual
-  beforeEach(async () => {
-    await sequelize.models.Asset.destroy({ where: {} }); // Limpiar activos para el test de borrado
-    await sequelize.models.Agent.destroy({ where: {} });
+    // Creamos los roles necesarios para las pruebas.
+    testRole = await findRole('User');
+    testRole2 = await findRole('Admin');
   });
 
   it('debería denegar el acceso sin un token', async () => {
@@ -46,46 +27,52 @@ describe('Agents API', () => {
     expect(res.statusCode).toEqual(401);
   });
 
+  // Se ejecuta después de cada prueba para limpiar los datos creados.
+  afterEach(async () => {
+    await Asset.destroy({ truncate: true, cascade: true });
+    await Agent.destroy({ truncate: true, cascade: true });
+  });
+
   describe('POST /api/agents', () => {
     it('debería crear un nuevo agente exitosamente', async () => {
       const res = await request(app)
         .post('/api/agents')
         .set('Authorization', `Bearer ${token}`)
-        .send({ name: 'John Doe', department: 'Sales', roleId: testRole.id });
+        .send({ name: 'John', lastname: 'Doe', roleId: testRole.id });
 
       expect(res.statusCode).toEqual(201);
       expect(res.body).toHaveProperty('id');
-      expect(res.body.name).toBe('John Doe');
+      expect(res.body.name).toBe('John');
       expect(res.body).toHaveProperty('role');
       expect(res.body.role.id).toBe(testRole.id);
-      expect(res.body.role.name).toBe(testRole.name);
+      expect(res.body.role.name).toBe('User');
     });
 
     it('debería devolver un error de validación si falta el nombre', async () => {
       const res = await request(app)
         .post('/api/agents')
         .set('Authorization', `Bearer ${token}`)
-        .send({ department: 'Sales', roleId: testRole.id });
+        .send({ lastname: 'Doe', roleId: testRole.id });
 
       expect(res.statusCode).toEqual(400);
       expect(res.body.error).toContain('El nombre es requerido');
     });
 
-    it('debería devolver un error de validación si falta el roleId', async () => {
+    it('debería devolver un error de validación si falta el lastname', async () => {
       const res = await request(app)
         .post('/api/agents')
         .set('Authorization', `Bearer ${token}`)
-        .send({ name: 'Missing Role', department: 'HR' });
+        .send({ name: 'John', roleId: testRole.id });
 
       expect(res.statusCode).toEqual(400);
-      expect(res.body.error).toContain('El rol es requerido');
+      expect(res.body.error).toContain('El apellido es requerido');
     });
 
     it('debería devolver un error si el roleId no existe', async () => {
       const res = await request(app)
         .post('/api/agents')
         .set('Authorization', `Bearer ${token}`)
-        .send({ name: 'Invalid Role', department: 'HR', roleId: 9999 });
+        .send({ name: 'Invalid', lastname: 'Role', roleId: 9999 });
 
       expect(res.statusCode).toEqual(400);
       expect(res.body.error).toBe('El rol especificado no existe');
@@ -94,11 +81,8 @@ describe('Agents API', () => {
 
   describe('GET /api/agents', () => {
     it('debería devolver una lista de agentes', async () => {
-      // Crear un agente primero
-      await request(app)
-        .post('/api/agents')
-        .set('Authorization', `Bearer ${token}`)
-        .send({ name: 'Jane Doe', department: 'Marketing', roleId: testRole.id });
+      // Arrange: Crear datos de prueba directamente en la BD.
+      await Agent.create({ name: 'Jane', lastname: 'Doe', roleId: testRole.id });
 
       const res = await request(app)
         .get('/api/agents')
@@ -106,26 +90,23 @@ describe('Agents API', () => {
 
       expect(res.statusCode).toEqual(200);
       expect(Array.isArray(res.body)).toBe(true);
-      expect(res.body.length).toBe(1);
-      expect(res.body[0].name).toBe('Jane Doe');
+      expect(res.body).toHaveLength(1); // Aserción exacta gracias al aislamiento.
+      expect(res.body[0].name).toBe('Jane');
       expect(res.body[0]).toHaveProperty('role');
     });
   });
 
   describe('GET /api/agents/:id', () => {
     it('debería devolver un solo agente por su ID', async () => {
-      const newAgentRes = await request(app)
-        .post('/api/agents')
-        .set('Authorization', `Bearer ${token}`)
-        .send({ name: 'Agent 47', department: 'Contracts', roleId: testRole.id });
-      const agentId = newAgentRes.body.id;
+      const newAgent = await Agent.create({ name: 'Agent', lastname: '47', roleId: testRole.id });
+      const agentId = newAgent.id;
 
       const res = await request(app)
         .get(`/api/agents/${agentId}`)
         .set('Authorization', `Bearer ${token}`);
 
       expect(res.statusCode).toEqual(200);
-      expect(res.body.name).toBe('Agent 47');
+      expect(res.body.name).toBe('Agent');
       expect(res.body).toHaveProperty('role');
       expect(res.body.role.id).toBe(testRole.id);
     });
@@ -142,43 +123,37 @@ describe('Agents API', () => {
 
   describe('PUT /api/agents/:id', () => {
     it('debería actualizar un agente exitosamente', async () => {
-      const newAgentRes = await request(app)
-        .post('/api/agents')
-        .set('Authorization', `Bearer ${token}`)
-        .send({ name: 'Old Name', department: 'Old Dept', roleId: testRole.id });
-      const agentId = newAgentRes.body.id;
+      const agent = await Agent.create({ name: 'Old', lastname: 'Name', roleId: testRole.id });
+      const agentId = agent.id;
 
       const res = await request(app)
         .put(`/api/agents/${agentId}`)
         .set('Authorization', `Bearer ${token}`)
-        .send({ name: 'New Name', department: 'New Dept', roleId: testRole2.id });
+        .send({ name: 'New', lastname: 'Name', roleId: testRole2.id });
 
       expect(res.statusCode).toEqual(200);
-      expect(res.body.name).toBe('New Name');
+      expect(res.body.name).toBe('New'); // El 'name' es 'New', 'lastname' es 'Name'
       expect(res.body.role.id).toBe(testRole2.id);
-      expect(res.body.role.name).toBe('Developer');
+      expect(res.body.role.name).toBe('Admin');
     });
 
     it('debería devolver 404 si se intenta actualizar un agente que no existe', async () => {
       const res = await request(app)
         .put('/api/agents/9999')
         .set('Authorization', `Bearer ${token}`)
-        .send({ name: 'Non Existent', department: 'Ghost' });
+        .send({ name: 'Non', lastname: 'Existent' });
 
       expect(res.statusCode).toEqual(404);
     });
 
     it('debería devolver un error de validación al actualizar', async () => {
-      const newAgentRes = await request(app)
-        .post('/api/agents')
-        .set('Authorization', `Bearer ${token}`)
-        .send({ name: 'Valid Agent', department: 'Valid Dept', roleId: testRole.id });
-      const agentId = newAgentRes.body.id;
+      const agent = await Agent.create({ name: 'Valid', lastname: 'Agent', roleId: testRole.id });
+      const agentId = agent.id;
 
       const res = await request(app)
         .put(`/api/agents/${agentId}`)
         .set('Authorization', `Bearer ${token}`)
-        .send({ name: '', department: 'Updated Dept' }); // Nombre inválido
+        .send({ name: '' }); // Nombre inválido
 
       expect(res.statusCode).toEqual(400);
       expect(res.body.error).toContain('El nombre no puede estar vacío');
@@ -187,44 +162,36 @@ describe('Agents API', () => {
 
   describe('DELETE /api/agents/:id', () => {
     it('debería eliminar un agente exitosamente', async () => {
-      const newAgentRes = await request(app)
-        .post('/api/agents')
-        .set('Authorization', `Bearer ${token}`)
-        .send({ name: 'To Be Deleted', department: 'Temp', roleId: testRole.id });
-      const agentId = newAgentRes.body.id;
+      const agent = await Agent.create({ name: 'To Be', lastname: 'Deleted', roleId: testRole.id });
+      const agentId = agent.id;
 
       const res = await request(app)
         .delete(`/api/agents/${agentId}`)
         .set('Authorization', `Bearer ${token}`);
 
+      // TODO: Refactorizar el controlador para que devuelva 204. Temporalmente se espera 200.
       expect(res.statusCode).toEqual(200);
       expect(res.body.message).toBe('Agente eliminado exitosamente');
     });
 
     it('debería devolver 400 si se intenta eliminar un agente con activos', async () => {
+      // --- Arrange: Crear entidades directamente en la BD ---
       // 1. Crear un agente
-      const agentRes = await request(app)
-        .post('/api/agents')
-        .set('Authorization', `Bearer ${token}`)
-        .send({ name: 'Agent With Asset', department: 'Finance', roleId: testRole.id });
-      const agentId = agentRes.body.id;
+      const agent = await Agent.create({ name: 'Agent', lastname: 'With Asset', roleId: testRole.id });
 
       // 2. Crear un activo y asignarlo al agente
-      await request(app)
-        .post('/api/assets')
-        .set('Authorization', `Bearer ${token}`)
-        .send({
-          name: 'Test Laptop',
-          serialNumber: `SN-${Date.now()}`,
-          value: 1000,
-          purchaseDate: '2024-01-01',
-          status: 'active',
-          agentId: agentId,
-        });
+      await Asset.create({
+        name: 'Test Laptop',
+        serialNumber: `SN-${Date.now()}`,
+        value: 1000,
+        purchaseDate: '2024-01-01',
+        status: 'BUENO',
+        agentId: agent.id,
+      });
 
-      // 3. Intentar eliminar el agente
+      // --- Act & Assert ---
       const res = await request(app)
-        .delete(`/api/agents/${agentId}`)
+        .delete(`/api/agents/${agent.id}`)
         .set('Authorization', `Bearer ${token}`);
 
       expect(res.statusCode).toEqual(400);
